@@ -3,34 +3,66 @@ const bcrypt = require('bcryptjs');
 const path = require('path');
 const fs = require('fs');
 
-const DB_PATH = path.join(__dirname, '..', 'database.sqlite');
+const IS_VERCEL = !!process.env.VERCEL;
+const ROOT_DB_PATH = path.join(__dirname, '..', 'database.sqlite');
+const TMP_DB_PATH = path.join('/tmp', 'database.sqlite');
+const DB_PATH = IS_VERCEL ? TMP_DB_PATH : ROOT_DB_PATH;
 
 let db = null;
 
 async function initDatabase() {
+    if (db) return db;
     const SQL = await initSqlJs();
+
+    // On Vercel, copy database to /tmp if not yet present
+    if (IS_VERCEL && !fs.existsSync(TMP_DB_PATH) && fs.existsSync(ROOT_DB_PATH)) {
+        try {
+            fs.copyFileSync(ROOT_DB_PATH, TMP_DB_PATH);
+        } catch (e) {
+            console.warn('Notice: Could not copy initial DB to /tmp:', e.message);
+        }
+    }
 
     // Load existing DB or create new one
     if (fs.existsSync(DB_PATH)) {
-        const buffer = fs.readFileSync(DB_PATH);
-        db = new SQL.Database(buffer);
+        try {
+            const buffer = fs.readFileSync(DB_PATH);
+            db = new SQL.Database(buffer);
+        } catch (e) {
+            db = new SQL.Database();
+        }
+    } else if (fs.existsSync(ROOT_DB_PATH)) {
+        try {
+            const buffer = fs.readFileSync(ROOT_DB_PATH);
+            db = new SQL.Database(buffer);
+        } catch (e) {
+            db = new SQL.Database();
+        }
     } else {
         db = new SQL.Database();
     }
 
     // Read and execute schema
-    const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
-    db.run(schema);
+    try {
+        const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
+        db.run(schema);
+    } catch (e) {
+        console.warn('Schema execution note:', e.message);
+    }
 
     // Seed data if tables are empty
-    const result = db.exec('SELECT COUNT(*) as count FROM users');
-    const userCount = result[0] ? result[0].values[0][0] : 0;
+    try {
+        const result = db.exec('SELECT COUNT(*) as count FROM users');
+        const userCount = result[0] ? result[0].values[0][0] : 0;
 
-    if (userCount === 0) {
-        seedUsers();
-        seedProducts();
-        saveDatabase();
-        console.log('✅ Database seeded with demo data');
+        if (userCount === 0) {
+            seedUsers();
+            seedProducts();
+            saveDatabase();
+            console.log('✅ Database seeded with demo data');
+        }
+    } catch (e) {
+        console.error('Seeding check error:', e);
     }
 
     return db;
@@ -42,9 +74,14 @@ function getDb() {
 
 function saveDatabase() {
     if (db) {
-        const data = db.export();
-        const buffer = Buffer.from(data);
-        fs.writeFileSync(DB_PATH, buffer);
+        try {
+            const data = db.export();
+            const buffer = Buffer.from(data);
+            fs.writeFileSync(DB_PATH, buffer);
+        } catch (e) {
+            // In serverless, catch any read-only disk errors safely
+            console.warn('Notice: Disk save skipped in serverless environment:', e.message);
+        }
     }
 }
 
