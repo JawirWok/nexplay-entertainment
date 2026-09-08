@@ -189,6 +189,12 @@ function createFallbackDb() {
 async function initDatabase() {
     if (db) return db;
 
+    if (IS_VERCEL) {
+        console.log('⚡ Running on Vercel: using instant memory DB');
+        db = createFallbackDb();
+        return db;
+    }
+
     try {
         let SQL;
         const possibleWasm = [

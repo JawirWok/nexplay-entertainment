@@ -47,24 +47,23 @@ app.use(async (req, res, next) => {
     }
 });
 
-// Serve static files (only for local development, Vercel handles static files via CDN)
-if (!process.env.VERCEL) {
-    app.use(express.static(path.join(__dirname, 'public')));
+// Serve static files if available
+app.use(express.static(path.join(__dirname, 'public')));
 
-    // SPA fallback - serve index.html for non-API routes locally
-    app.get('*', (req, res) => {
-        if (!req.path.startsWith('/api')) {
-            const indexPath = path.join(__dirname, 'public', 'index.html');
-            if (fs.existsSync(indexPath)) {
-                res.sendFile(indexPath);
-            } else {
-                res.status(404).send('Page not found');
-            }
-        }
-    });
-}
+// Root route
+app.get('/', (req, res) => {
+    const indexPath = path.join(__dirname, 'public', 'index.html');
+    if (fs.existsSync(indexPath)) {
+        return res.sendFile(indexPath);
+    }
+    const rootIndex = path.join(__dirname, 'index.html');
+    if (fs.existsSync(rootIndex)) {
+        return res.sendFile(rootIndex);
+    }
+    res.send('NexPlay Entertainment');
+});
 
-// Routes
+// Routes (supports both /api/prefix and stripped /prefix)
 const authRoutes = require('./routes/auth');
 const productRoutes = require('./routes/products');
 const cartRoutes = require('./routes/cart');
@@ -72,12 +71,12 @@ const orderRoutes = require('./routes/orders');
 const paymentRoutes = require('./routes/payment');
 const userRoutes = require('./routes/users');
 
-app.use('/api/auth', authRoutes);
-app.use('/api/products', productRoutes);
-app.use('/api/cart', cartRoutes);
-app.use('/api/orders', orderRoutes);
-app.use('/api/payment', paymentRoutes);
-app.use('/api/users', userRoutes);
+app.use(['/api/auth', '/auth'], authRoutes);
+app.use(['/api/products', '/products'], productRoutes);
+app.use(['/api/cart', '/cart'], cartRoutes);
+app.use(['/api/orders', '/orders'], orderRoutes);
+app.use(['/api/payment', '/payment'], paymentRoutes);
+app.use(['/api/users', '/users'], userRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {
