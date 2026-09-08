@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Checkout dan pembayaran produk digital di NexPlay.">
+    <title>Checkout — NexPlay</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎮</text></svg>">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">
+            <div class="logo-icon">🎮</div>
+            <span>Nex<span class="text-gradient">Play</span></span>
+        </a>
+        <ul class="navbar-nav" id="navbar-nav">
+            <li><a href="/" class="nav-link">🏠 Home</a></li>
+            <li><a href="/cart.html" class="nav-link">🛒 Keranjang</a></li>
+        </ul>
+        <button class="mobile-toggle" id="mobile-toggle">☰</button>
+        <div class="nav-actions" id="nav-actions"></div>
+    </nav>
+
+    <main class="main-content">
+        <div class="container checkout-page">
+            <div class="page-header" style="text-align:center">
+                <h1>💳 <span class="text-gradient">Checkout</span></h1>
+                <p>Pilih metode pembayaran untuk menyelesaikan pesanan</p>
+            </div>
+
+            <!-- Step indicators -->
+            <div style="display:flex;justify-content:center;gap:8px;margin-bottom:40px">
+                <div id="step-1" style="display:flex;align-items:center;gap:8px">
+                    <span style="width:32px;height:32px;border-radius:50%;background:#18181b;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:0.85rem">1</span>
+                    <span style="font-weight:600;font-size:0.9rem">Pembayaran</span>
+                </div>
+                <div style="width:40px;height:2px;background:var(--border-medium);align-self:center"></div>
+                <div id="step-2" style="display:flex;align-items:center;gap:8px;opacity:0.4">
+                    <span style="width:32px;height:32px;border-radius:50%;background:#ffffff;border:var(--border-medium);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem">2</span>
+                    <span style="font-weight:600;font-size:0.9rem">Konfirmasi</span>
+                </div>
+                <div style="width:40px;height:2px;background:var(--border-medium);align-self:center"></div>
+                <div id="step-3" style="display:flex;align-items:center;gap:8px;opacity:0.4">
+                    <span style="width:32px;height:32px;border-radius:50%;background:#ffffff;border:var(--border-medium);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem">3</span>
+                    <span style="font-weight:600;font-size:0.9rem">Selesai</span>
+                </div>
+            </div>
+
+            <div id="checkout-content">
+                <div class="page-loading"><div class="loading-spinner"></div></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Payment Processing Modal -->
+    <div class="payment-modal" id="payment-modal">
+        <div class="payment-modal-content" id="modal-content">
+            <div class="payment-spinner"></div>
+            <h3>Memproses Pembayaran...</h3>
+            <p style="color:var(--text-secondary);margin-top:8px">Mohon tunggu sebentar</p>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script>
+        let selectedMethod = null;
+        let cartData = null;
+        let currentOrder = null;
+
+        async function loadCheckout() {
+            try {
+                cartData = await API.get('/api/cart');
+
+                if (!cartData.items || cartData.items.length === 0) {
+                    document.getElementById('checkout-content').innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">🛒</div>
+                            <h3>Keranjang kosong</h3>
+                            <p>Tambahkan produk ke keranjang terlebih dahulu</p>
+                            <a href="/" class="btn btn-primary">Jelajahi Katalog</a>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Load payment methods
+                const methodsData = await API.get('/api/payment/methods');
+                renderPaymentStep(methodsData.methods);
+            } catch (err) {
+                if (err.message.includes('Unauthorized')) {
+                    window.location.href = '/login.html';
+                    return;
+                }
+                showToast(err.message, 'error');
+            }
+        }
+
+        function renderPaymentStep(methods) {
+            // Group methods by type
+            const ewallets = methods.filter(m => m.type === 'e-wallet');
+            const banks = methods.filter(m => m.type === 'bank_transfer');
+            const others = methods.filter(m => m.type === 'card' || m.type === 'qris');
+
+            const container = document.getElementById('checkout-content');
+            container.innerHTML = `
+                <div class="glass-card" style="padding:28px;margin-bottom:24px">
+                    <h3 style="margin-bottom:8px">📦 Ringkasan Pesanan</h3>
+                    <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:16px">${cartData.items.length} item</p>
+                    ${cartData.items.map(item => `
+                        <div style="display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:var(--border-light)">
+                            ${item.image_url ? `<img src="${item.image_url}" alt="${item.name}" style="width:48px;height:48px;border-radius:6px;object-fit:cover;border:var(--border-light);flex-shrink:0" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">` : ''}
+                            <span style="${item.image_url ? 'display:none;' : ''}font-size:1.3rem">${getCategoryIcon(item.category)}</span>
+                            <div style="flex:1">
+                                <div style="font-weight:600;font-size:0.92rem;color:var(--text-primary)">${item.name}</div>
+                                <div style="font-size:0.8rem;color:var(--text-muted)">x${item.quantity}</div>
+                            </div>
+                            <div style="font-weight:700;color:var(--text-primary);font-size:0.95rem">${formatRupiah(item.price * item.quantity)}</div>
+                        </div>
+                    `).join('')}
+                    <div style="display:flex;justify-content:space-between;padding-top:16px;margin-top:8px;font-size:1.15rem;font-weight:700">
+                        <span>Total</span>
+                        <span style="color:var(--text-primary)">${formatRupiah(cartData.total)}</span>
+                    </div>
+                </div>
+
+                <div class="glass-card" style="padding:28px;margin-bottom:24px">
+                    <h3 style="margin-bottom:20px">💳 Pilih Metode Pembayaran</h3>
+
+                    <h4 style="font-size:0.85rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">E-Wallet</h4>
+                    <div class="payment-methods">
+                        ${ewallets.map(m => `
+                            <div class="glass-card payment-method" data-method="${m.id}" onclick="selectMethod('${m.id}')">
+                                <div class="method-icon">${m.icon}</div>
+                                <div class="method-info">
+                                    <h4>${m.name}</h4>
+                                    <p>${m.description}</p>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <h4 style="font-size:0.85rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin:20px 0 12px">Bank Transfer</h4>
+                    <div class="payment-methods">
+                        ${banks.map(m => `
+                            <div class="glass-card payment-method" data-method="${m.id}" onclick="selectMethod('${m.id}')">
+                                <div class="method-icon">${m.icon}</div>
+                                <div class="method-info">
+                                    <h4>${m.name}</h4>
+                                    <p>${m.description}</p>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <h4 style="font-size:0.85rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin:20px 0 12px">Lainnya</h4>
+                    <div class="payment-methods">
+                        ${others.map(m => `
+                            <div class="glass-card payment-method" data-method="${m.id}" onclick="selectMethod('${m.id}')">
+                                <div class="method-icon">${m.icon}</div>
+                                <div class="method-info">
+                                    <h4>${m.name}</h4>
+                                    <p>${m.description}</p>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <button class="btn btn-primary btn-lg" style="width:100%" id="pay-btn" onclick="processPayment()" disabled>
+                    🔒 Pilih Metode Pembayaran Dulu
+                </button>
+            `;
+        }
+
+        function selectMethod(methodId) {
+            selectedMethod = methodId;
+
+            // Update UI
+            document.querySelectorAll('.payment-method').forEach(el => {
+                el.classList.toggle('selected', el.dataset.method === methodId);
+            });
+
+            const btn = document.getElementById('pay-btn');
+            btn.disabled = false;
+            btn.innerHTML = `💳 Bayar ${formatRupiah(cartData.total)}`;
+        }
+
+        async function processPayment() {
+            if (!selectedMethod) return;
+
+            const btn = document.getElementById('pay-btn');
+            btn.disabled = true;
+
+            // Show processing modal
+            const modal = document.getElementById('payment-modal');
+            modal.classList.add('show');
+
+            try {
+                // Step 1: Create order (checkout)
+                const orderData = await API.post('/api/orders/checkout', {
+                    payment_method: selectedMethod
+                });
+
+                currentOrder = orderData.order;
+
+                // Step 2: Process payment
+                const paymentData = await API.post('/api/payment/process', {
+                    order_id: currentOrder.id,
+                    payment_method: selectedMethod
+                });
+
+                // Update step indicator
+                document.getElementById('step-1').style.opacity = '0.4';
+                document.getElementById('step-2').style.opacity = '1';
+                document.getElementById('step-2').querySelector('span:first-child').style.background = '#18181b';
+                document.getElementById('step-2').querySelector('span:first-child').style.color = '#fff';
+                document.getElementById('step-2').querySelector('span:first-child').style.borderColor = '#18181b';
+
+                // Show payment details
+                setTimeout(() => {
+                    modal.classList.remove('show');
+                    renderPaymentDetails(paymentData);
+                }, 1500);
+
+            } catch (err) {
+                modal.classList.remove('show');
+                showToast(err.message, 'error');
+                btn.disabled = false;
+            }
+        }
+
+        function renderPaymentDetails(paymentData) {
+            const container = document.getElementById('checkout-content');
+            const details = paymentData.payment_details;
+
+            let detailsHtml = '';
+
+            if (details.type === 'virtual_account') {
+                detailsHtml = `
+                    <div class="va-details">
+                        <div class="va-label">Bank</div>
+                        <div style="font-weight:600;font-size:1.1rem;margin-bottom:12px">${details.bank}</div>
+                        <div class="va-label">Nomor Virtual Account</div>
+                        <div class="va-number">${details.va_number}</div>
+                        <button class="btn-copy" onclick="copyToClipboard('${details.va_number}')">📋 Salin</button>
+                        <div style="margin-top:12px;font-size:0.85rem;color:var(--text-muted)">
+                            Berlaku sampai: ${new Date(details.expiry).toLocaleString('id-ID')}
+                        </div>
+                    </div>
+                `;
+            } else if (details.type === 'qris') {
+                detailsHtml = `
+                    <div class="va-details" style="text-align:center">
+                        <div style="width:180px;height:180px;background:white;border-radius:12px;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:3rem">
+                            📱
+                        </div>
+                        <div class="va-label">QRIS Code (Demo)</div>
+                        <div class="va-number" style="font-size:1rem">${details.qr_data}</div>
+                        <div style="margin-top:8px;font-size:0.85rem;color:var(--text-muted)">
+                            Scan dengan e-wallet manapun
+                        </div>
+                    </div>
+                `;
+            } else {
+                detailsHtml = `
+                    <div class="va-details">
+                        <p style="color:var(--text-secondary)">${details.message}</p>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = `
+                <div class="glass-card" style="padding:32px;text-align:center">
+                    <div style="font-size:3rem;margin-bottom:16px">⏳</div>
+                    <h2>Menunggu Pembayaran</h2>
+                    <p style="color:var(--text-secondary);margin-bottom:8px">Order: <span style="color:#18181b;font-weight:700;font-family:var(--font-heading)">${currentOrder.order_code}</span></p>
+                    <p style="color:var(--text-secondary);margin-bottom:24px">Total: <span style="color:#18181b;font-weight:800;font-size:1.35rem">${formatRupiah(currentOrder.total_amount)}</span></p>
+
+                    ${detailsHtml}
+
+                    <div style="margin-top:24px;padding:16px;background:rgba(255,145,0,0.1);border:1px solid rgba(255,145,0,0.2);border-radius:var(--radius-md);text-align:left">
+                        <div style="font-weight:600;color:var(--accent-orange);margin-bottom:4px">⚠️ Demo Mode</div>
+                        <p style="font-size:0.85rem;color:var(--text-secondary)">Ini adalah demo payment gateway. Klik tombol "Konfirmasi Pembayaran" untuk simulasi pembayaran berhasil.</p>
+                    </div>
+
+                    <button class="btn btn-success btn-lg" style="width:100%;margin-top:24px" onclick="confirmPayment()">
+                        ✅ Konfirmasi Pembayaran (Demo)
+                    </button>
+                </div>
+            `;
+        }
+
+        async function confirmPayment() {
+            const modal = document.getElementById('payment-modal');
+            document.getElementById('modal-content').innerHTML = `
+                <div class="payment-spinner"></div>
+                <h3>Mengkonfirmasi Pembayaran...</h3>
+                <p style="color:var(--text-secondary);margin-top:8px">Mohon tunggu sebentar</p>
+            `;
+            modal.classList.add('show');
+
+            try {
+                await API.post('/api/payment/confirm', { order_id: currentOrder.id });
+
+                // Update steps
+                document.getElementById('step-2').style.opacity = '0.4';
+                document.getElementById('step-3').style.opacity = '1';
+                document.getElementById('step-3').querySelector('span:first-child').style.background = '#15803d';
+                document.getElementById('step-3').querySelector('span:first-child').style.color = '#fff';
+                document.getElementById('step-3').querySelector('span:first-child').style.borderColor = '#15803d';
+
+                setTimeout(() => {
+                    modal.classList.remove('show');
+
+                    document.getElementById('checkout-content').innerHTML = `
+                        <div class="glass-card" style="padding:48px;text-align:center">
+                            <div class="payment-success-icon">✅</div>
+                            <h2 style="margin-bottom:8px">Pembayaran Berhasil! 🎉</h2>
+                            <p style="color:var(--text-secondary);margin-bottom:24px">Terima kasih telah berbelanja di NexPlay</p>
+
+                            <div style="background:#faf9f5;border:var(--border-medium);border-radius:var(--radius-md);padding:20px;margin-bottom:24px;text-align:left">
+                                <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+                                    <span style="color:var(--text-muted)">Order Code</span>
+                                    <span style="font-weight:700;color:#18181b;font-family:var(--font-heading)">${currentOrder.order_code}</span>
+                                </div>
+                                <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+                                    <span style="color:var(--text-muted)">Total</span>
+                                    <span style="font-weight:700;color:var(--accent-green)">${formatRupiah(currentOrder.total_amount)}</span>
+                                </div>
+                                <div style="display:flex;justify-content:space-between">
+                                    <span style="color:var(--text-muted)">Status</span>
+                                    <span class="order-status status-success">SUCCESS</span>
+                                </div>
+                            </div>
+
+                            <div style="display:flex;gap:12px;justify-content:center">
+                                <a href="/orders.html" class="btn btn-primary">📦 Lihat Pesanan</a>
+                                <a href="/" class="btn btn-secondary">🏠 Kembali ke Home</a>
+                            </div>
+                        </div>
+                    `;
+
+                    AppState.cartCount = 0;
+                    updateCartBadge();
+                }, 2000);
+
+            } catch (err) {
+                modal.classList.remove('show');
+                showToast(err.message, 'error');
+            }
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('Nomor disalin!', 'success');
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', loadCheckout);
+    </script>
+</body>
+</html>

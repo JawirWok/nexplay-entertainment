@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Riwayat pesanan dan transaksi di NexPlay.">
+    <title>Pesanan Saya — NexPlay</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎮</text></svg>">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">
+            <div class="logo-icon">🎮</div>
+            <span>Nex<span class="text-gradient">Play</span></span>
+        </a>
+        <ul class="navbar-nav" id="navbar-nav">
+            <li><a href="/" class="nav-link">🏠 Home</a></li>
+            <li><a href="/#catalog" class="nav-link">🎯 Katalog</a></li>
+        </ul>
+        <button class="mobile-toggle" id="mobile-toggle">☰</button>
+        <div class="nav-actions" id="nav-actions"></div>
+    </nav>
+
+    <main class="main-content">
+        <div class="container" style="padding-top:40px;padding-bottom:60px">
+            <div class="page-header">
+                <h1>📦 Pesanan <span class="text-gradient">Saya</span></h1>
+                <p>Riwayat semua transaksi kamu di NexPlay</p>
+            </div>
+
+            <div id="orders-content">
+                <div class="page-loading"><div class="loading-spinner"></div></div>
+            </div>
+        </div>
+    </main>
+
+    <script src="/js/app.js"></script>
+    <script>
+        async function loadOrders() {
+            try {
+                const data = await API.get('/api/orders');
+                renderOrders(data.orders);
+            } catch (err) {
+                if (err.message.includes('Unauthorized') || err.message.includes('login')) {
+                    document.getElementById('orders-content').innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">🔒</div>
+                            <h3>Login diperlukan</h3>
+                            <p>Silakan login untuk melihat riwayat pesanan</p>
+                            <a href="/login.html" class="btn btn-primary">Login</a>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        function renderOrders(orders) {
+            const container = document.getElementById('orders-content');
+
+            if (orders.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">📦</div>
+                        <h3>Belum ada pesanan</h3>
+                        <p>Kamu belum pernah melakukan transaksi</p>
+                        <a href="/" class="btn btn-primary">Mulai Belanja</a>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = orders.map(order => `
+                <div class="glass-card order-card">
+                    <div class="order-header">
+                        <div>
+                            <span class="order-code">${order.order_code}</span>
+                            <div style="font-size:0.8rem;color:var(--text-muted);margin-top:4px">
+                                ${new Date(order.created_at).toLocaleString('id-ID')}
+                            </div>
+                        </div>
+                        <span class="order-status status-${order.payment_status}">${order.payment_status}</span>
+                    </div>
+
+                    <div class="order-items">
+                        ${(order.items || []).map(item => `
+                            <div class="order-item">
+                                ${item.image_url ? `<img src="${item.image_url}" alt="${item.name}" style="width:44px;height:44px;border-radius:6px;object-fit:cover;border:var(--border-light)" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">` : ''}
+                                <span style="${item.image_url ? 'display:none;' : ''}font-size:1.5rem">${getCategoryIcon(item.category)}</span>
+                                <div style="flex:1">
+                                    <div style="font-weight:600;font-size:0.9rem;color:var(--text-primary)">${item.name}</div>
+                                    <div style="font-size:0.8rem;color:var(--text-muted)">x${item.quantity}</div>
+                                </div>
+                                <div style="font-weight:700;color:var(--text-primary)">${formatRupiah(item.price * item.quantity)}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <div class="order-footer">
+                        <div>
+                            <span style="color:var(--text-muted);font-size:0.85rem">Metode: </span>
+                            <span style="font-weight:500">${order.payment_method || '-'}</span>
+                        </div>
+                        <div class="order-total">Total: ${formatRupiah(order.total_amount)}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        document.addEventListener('DOMContentLoaded', loadOrders);
+    </script>
+</body>
+</html>

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Keranjang belanja NexPlay. Review dan checkout produk digital kamu.">
+    <title>Keranjang — NexPlay</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎮</text></svg>">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">
+            <div class="logo-icon">🎮</div>
+            <span>Nex<span class="text-gradient">Play</span></span>
+        </a>
+        <ul class="navbar-nav" id="navbar-nav">
+            <li><a href="/" class="nav-link">🏠 Home</a></li>
+            <li><a href="/#catalog" class="nav-link">🎯 Katalog</a></li>
+        </ul>
+        <button class="mobile-toggle" id="mobile-toggle">☰</button>
+        <div class="nav-actions" id="nav-actions"></div>
+    </nav>
+
+    <main class="main-content">
+        <div class="container cart-page">
+            <div class="page-header">
+                <h1>🛒 Keranjang <span class="text-gradient">Belanja</span></h1>
+                <p>Review item sebelum checkout</p>
+            </div>
+
+            <div id="cart-content">
+                <div class="page-loading"><div class="loading-spinner"></div></div>
+            </div>
+        </div>
+    </main>
+
+    <script src="/js/app.js"></script>
+    <script>
+        let cartItems = [];
+        let cartTotal = 0;
+
+        async function loadCart() {
+            try {
+                const data = await API.get('/api/cart');
+                cartItems = data.items;
+                cartTotal = data.total;
+                renderCart();
+            } catch (err) {
+                if (err.message.includes('Unauthorized') || err.message.includes('login')) {
+                    document.getElementById('cart-content').innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">🔒</div>
+                            <h3>Login diperlukan</h3>
+                            <p>Silakan login untuk melihat keranjang belanja kamu</p>
+                            <a href="/login.html" class="btn btn-primary">Login</a>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        function renderCart() {
+            const container = document.getElementById('cart-content');
+
+            if (cartItems.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">🛒</div>
+                        <h3>Keranjang kosong</h3>
+                        <p>Belum ada item di keranjang. Yuk mulai belanja!</p>
+                        <a href="/" class="btn btn-primary">Jelajahi Katalog</a>
+                    </div>
+                `;
+                return;
+            }
+
+            const itemsHtml = cartItems.map(item => `
+                <div class="glass-card cart-item" data-cart-id="${item.id}">
+                    <div class="item-image">
+                        ${item.image_url ? `<img src="${item.image_url}" alt="${item.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : ''}
+                        <div class="placeholder-img" style="${item.image_url ? 'display:none;' : ''}font-size:1.5rem">${getCategoryIcon(item.category)}</div>
+                    </div>
+                    <div class="item-info">
+                        <h4>${item.name}</h4>
+                        <span class="item-category">${item.category}</span>
+                    </div>
+                    <div class="item-quantity">
+                        <button class="qty-btn" onclick="updateQty(${item.id}, ${item.quantity - 1})">−</button>
+                        <span class="qty-value">${item.quantity}</span>
+                        <button class="qty-btn" onclick="updateQty(${item.id}, ${item.quantity + 1})">+</button>
+                    </div>
+                    <div class="item-price">${formatRupiah(item.price * item.quantity)}</div>
+                    <button class="item-remove" onclick="removeItem(${item.id})" title="Hapus">🗑️</button>
+                </div>
+            `).join('');
+
+            container.innerHTML = `
+                <div class="cart-layout">
+                    <div class="cart-items">${itemsHtml}</div>
+                    <div class="glass-card cart-summary">
+                        <h3>📋 Ringkasan</h3>
+                        <div class="summary-row">
+                            <span>Subtotal (${cartItems.length} item)</span>
+                            <span>${formatRupiah(cartTotal)}</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Biaya Layanan</span>
+                            <span style="color:var(--accent-green)">Gratis</span>
+                        </div>
+                        <div class="summary-row total">
+                            <span>Total</span>
+                            <span>${formatRupiah(cartTotal)}</span>
+                        </div>
+                        <button class="btn btn-primary btn-lg" style="width:100%;margin-top:20px" onclick="proceedCheckout()">
+                            💳 Checkout
+                        </button>
+                        <a href="/" class="btn btn-secondary btn-sm" style="width:100%;margin-top:8px;text-align:center">
+                            ← Lanjut Belanja
+                        </a>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function updateQty(cartId, newQty) {
+            try {
+                if (newQty <= 0) {
+                    await removeItem(cartId);
+                    return;
+                }
+                await API.put(`/api/cart/${cartId}`, { quantity: newQty });
+                await loadCart();
+                await checkAuth();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        async function removeItem(cartId) {
+            try {
+                await API.delete(`/api/cart/${cartId}`);
+                showToast('Item dihapus dari keranjang', 'info');
+                await loadCart();
+                await checkAuth();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        function proceedCheckout() {
+            window.location.href = '/checkout.html';
+        }
+
+        document.addEventListener('DOMContentLoaded', loadCart);
+    </script>
+</body>
+</html>

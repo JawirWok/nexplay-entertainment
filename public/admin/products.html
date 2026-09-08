@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Admin - Kelola produk digital entertainment NexPlay.">
+    <title>Kelola Produk — Admin NexPlay</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎮</text></svg>">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">
+            <div class="logo-icon">🎮</div>
+            <span>Nex<span class="text-gradient">Play</span></span>
+        </a>
+        <ul class="navbar-nav" id="navbar-nav">
+            <li><a href="/" class="nav-link">🏠 Store</a></li>
+        </ul>
+        <button class="mobile-toggle" id="mobile-toggle">☰</button>
+        <div class="nav-actions" id="nav-actions"></div>
+    </nav>
+
+    <main class="main-content">
+        <div class="admin-layout">
+            <aside class="admin-sidebar">
+                <div class="sidebar-title">Dashboard</div>
+                <ul class="sidebar-nav">
+                    <li><a href="/admin/dashboard.html" class="sidebar-link">📊 Overview</a></li>
+                    <li><a href="/admin/products.html" class="sidebar-link active">📦 Produk</a></li>
+                    <li><a href="/admin/orders.html" class="sidebar-link">🧾 Transaksi</a></li>
+                    <li><a href="/admin/users.html" class="sidebar-link">👥 Users</a></li>
+                </ul>
+                <div class="sidebar-title">Quick Links</div>
+                <ul class="sidebar-nav">
+                    <li><a href="/" class="sidebar-link">🏪 Lihat Store</a></li>
+                    <li><a href="#" class="sidebar-link" onclick="logout()">🚪 Logout</a></li>
+                </ul>
+            </aside>
+
+            <div class="admin-content">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;flex-wrap:wrap;gap:16px">
+                    <div>
+                        <h2>📦 Kelola <span class="text-gradient">Produk</span></h2>
+                        <p style="color:var(--text-secondary)">Tambah, edit, dan hapus produk digital</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="openAddModal()">➕ Tambah Produk</button>
+                </div>
+
+                <!-- Filter -->
+                <div style="display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap">
+                    <select class="form-control" style="width:auto;min-width:150px" id="filter-category" onchange="loadProducts()">
+                        <option value="">Semua Kategori</option>
+                        <option value="game">🎮 Games</option>
+                        <option value="film">🎬 Film</option>
+                        <option value="music">🎵 Musik</option>
+                        <option value="ebook">📚 eBook</option>
+                    </select>
+                    <input type="text" class="form-control" style="width:auto;min-width:250px" placeholder="🔍 Cari produk..." id="search-product" oninput="debounceSearch()">
+                </div>
+
+                <div class="glass-card" style="padding:0;overflow-x:auto">
+                    <table class="data-table" id="products-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Produk</th>
+                                <th>Kategori</th>
+                                <th>Harga</th>
+                                <th>Stok</th>
+                                <th>Rating</th>
+                                <th>Featured</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="products-tbody">
+                            <tr><td colspan="8" style="text-align:center;padding:32px"><div class="loading-spinner"></div></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add/Edit Product Modal -->
+    <div class="modal-overlay" id="product-modal">
+        <div class="modal" style="max-width:640px">
+            <div class="modal-header">
+                <h3 id="modal-title">Tambah Produk</h3>
+                <button class="modal-close" onclick="closeModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <form id="product-form">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                        <div class="form-group" style="grid-column:1/-1">
+                            <label for="p-name">Nama Produk *</label>
+                            <input type="text" id="p-name" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="p-category">Kategori *</label>
+                            <select id="p-category" class="form-control" required>
+                                <option value="game">🎮 Game</option>
+                                <option value="film">🎬 Film</option>
+                                <option value="music">🎵 Musik</option>
+                                <option value="ebook">📚 eBook</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="p-price">Harga (Rp) *</label>
+                            <input type="number" id="p-price" class="form-control" required min="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="p-stock">Stok</label>
+                            <input type="number" id="p-stock" class="form-control" value="100">
+                        </div>
+                        <div class="form-group">
+                            <label for="p-rating">Rating (0-5)</label>
+                            <input type="number" id="p-rating" class="form-control" value="0" min="0" max="5" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label for="p-developer">Developer / Publisher</label>
+                            <input type="text" id="p-developer" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="p-platform">Platform</label>
+                            <input type="text" id="p-platform" class="form-control" placeholder="PC, PS5, Xbox...">
+                        </div>
+                        <div class="form-group">
+                            <label for="p-year">Tahun Rilis</label>
+                            <input type="number" id="p-year" class="form-control" value="2024">
+                        </div>
+                        <div class="form-group">
+                            <label for="p-featured">Featured</label>
+                            <select id="p-featured" class="form-control">
+                                <option value="0">Tidak</option>
+                                <option value="1">Ya</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="grid-column:1/-1">
+                            <label for="p-description">Deskripsi</label>
+                            <textarea id="p-description" class="form-control" rows="3"></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()">Batal</button>
+                <button class="btn btn-primary" id="save-btn" onclick="saveProduct()">💾 Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script>
+        let editingProductId = null;
+        let searchTimer;
+
+        function debounceSearch() {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(loadProducts, 300);
+        }
+
+        async function loadProducts() {
+            try {
+                const category = document.getElementById('filter-category').value;
+                const search = document.getElementById('search-product').value;
+
+                let url = '/api/products?';
+                if (category) url += `category=${category}&`;
+                if (search) url += `search=${encodeURIComponent(search)}&`;
+
+                const data = await API.get(url);
+                renderProducts(data.products);
+            } catch (err) {
+                if (err.message.includes('Unauthorized') || err.message.includes('Forbidden')) {
+                    window.location.href = '/login.html';
+                    return;
+                }
+                showToast(err.message, 'error');
+            }
+        }
+
+        function renderProducts(products) {
+            const tbody = document.getElementById('products-tbody');
+
+            if (products.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text-muted)">Tidak ada produk ditemukan</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = products.map(p => `
+                <tr>
+                    <td style="color:var(--text-muted)">#${p.id}</td>
+                    <td>
+                        <div style="display:flex;align-items:center;gap:12px">
+                            ${p.image_url ? `<img src="${p.image_url}" alt="${p.name}" style="width:40px;height:40px;border-radius:6px;object-fit:cover;border:var(--border-medium);flex-shrink:0" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">` : ''}
+                            <span style="${p.image_url ? 'display:none;' : ''}font-size:1.3rem">${getCategoryIcon(p.category)}</span>
+                            <div>
+                                <div style="font-weight:600;color:var(--text-primary)">${p.name}</div>
+                                <div style="font-size:0.8rem;color:var(--text-muted)">${p.developer || '-'}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td><span class="category-badge ${p.category}">${p.category}</span></td>
+                    <td style="font-weight:700;color:var(--text-primary)">${formatRupiah(p.price)}</td>
+                    <td>${p.stock}</td>
+                    <td>⭐ ${p.rating}</td>
+                    <td>${p.featured ? '✅' : '—'}</td>
+                    <td>
+                        <div style="display:flex;gap:6px">
+                            <button class="btn btn-secondary btn-sm" onclick="openEditModal(${p.id})">✏️</button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteProduct(${p.id}, '${p.name.replace(/'/g, "\\'")}')">🗑️</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function openAddModal() {
+            editingProductId = null;
+            document.getElementById('modal-title').textContent = '➕ Tambah Produk';
+            document.getElementById('product-form').reset();
+            document.getElementById('p-stock').value = 100;
+            document.getElementById('p-year').value = 2024;
+            document.getElementById('product-modal').classList.add('show');
+        }
+
+        async function openEditModal(id) {
+            try {
+                const data = await API.get(`/api/products/${id}`);
+                const p = data.product;
+
+                editingProductId = id;
+                document.getElementById('modal-title').textContent = '✏️ Edit Produk';
+                document.getElementById('p-name').value = p.name;
+                document.getElementById('p-category').value = p.category;
+                document.getElementById('p-price').value = p.price;
+                document.getElementById('p-stock').value = p.stock;
+                document.getElementById('p-rating').value = p.rating;
+                document.getElementById('p-developer').value = p.developer || '';
+                document.getElementById('p-platform').value = p.platform || '';
+                document.getElementById('p-year').value = p.release_year || 2024;
+                document.getElementById('p-featured').value = p.featured || 0;
+                document.getElementById('p-description').value = p.description || '';
+
+                document.getElementById('product-modal').classList.add('show');
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('product-modal').classList.remove('show');
+        }
+
+        async function saveProduct() {
+            const productData = {
+                name: document.getElementById('p-name').value,
+                category: document.getElementById('p-category').value,
+                price: parseFloat(document.getElementById('p-price').value),
+                stock: parseInt(document.getElementById('p-stock').value),
+                rating: parseFloat(document.getElementById('p-rating').value),
+                developer: document.getElementById('p-developer').value,
+                platform: document.getElementById('p-platform').value,
+                release_year: parseInt(document.getElementById('p-year').value),
+                featured: parseInt(document.getElementById('p-featured').value),
+                description: document.getElementById('p-description').value,
+                image_url: ''
+            };
+
+            if (!productData.name || !productData.price || !productData.category) {
+                showToast('Nama, harga, dan kategori wajib diisi', 'error');
+                return;
+            }
+
+            try {
+                if (editingProductId) {
+                    await API.put(`/api/products/${editingProductId}`, productData);
+                    showToast('Produk berhasil diupdate! ✅', 'success');
+                } else {
+                    await API.post('/api/products', productData);
+                    showToast('Produk berhasil ditambahkan! ✅', 'success');
+                }
+
+                closeModal();
+                loadProducts();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        async function deleteProduct(id, name) {
+            if (!confirm(`Hapus produk "${name}"?`)) return;
+
+            try {
+                await API.delete(`/api/products/${id}`);
+                showToast('Produk dihapus', 'info');
+                loadProducts();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadProducts);
+    </script>
+</body>
+</html>

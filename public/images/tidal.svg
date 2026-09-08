@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 533" width="800" height="533">
+  <defs>
+    <linearGradient id="bgTidal" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="50%" stop-color="#1e293b" />
+      <stop offset="100%" stop-color="#090d16" />
+    </linearGradient>
+    <radialGradient id="glowTidal" cx="70%" cy="30%" r="60%">
+      <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#06b6d4" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="533" fill="url(#bgTidal)" />
+  <rect width="800" height="533" fill="url(#glowTidal)" />
+
+  <!-- Card outline -->
+  <rect x="40" y="40" width="720" height="453" rx="20" fill="none" stroke="#ffffff" stroke-opacity="0.08" stroke-width="1.5" />
+
+  <!-- Top bar -->
+  <g transform="translate(70, 75)">
+    <rect width="105" height="28" rx="6" fill="#06b6d4" fill-opacity="0.15" stroke="#06b6d4" stroke-opacity="0.3" stroke-width="1" />
+    <text x="52" y="18" fill="#22d3ee" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="700" letter-spacing="1" text-anchor="middle">HiFi PLUS</text>
+  </g>
+
+  <!-- TIDAL Diamonds Logo -->
+  <g transform="translate(70, 130)">
+    <!-- 4 Diamonds forming TIDAL logo -->
+    <g transform="translate(0, 16)">
+      <!-- Diamond 1 -->
+      <polygon points="16,0 32,16 16,32 0,16" fill="#ffffff" />
+      <!-- Diamond 2 -->
+      <polygon points="48,0 64,16 48,32 32,16" fill="#ffffff" />
+      <!-- Diamond 3 -->
+      <polygon points="80,0 96,16 80,32 64,16" fill="#ffffff" />
+      <!-- Diamond 4 (top) -->
+      <polygon points="48,-16 64,0 48,16 32,0" fill="#ffffff" />
+    </g>
+  </g>
+
+  <!-- Typography -->
+  <text x="70" y="260" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', Roboto, sans-serif" font-size="38" font-weight="700" letter-spacing="1">T I D A L</text>
+  <text x="70" y="295" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', Roboto, sans-serif" font-size="18" font-weight="500">1 Bulan HiFi Plus • Master Quality Audio</text>
+
+  <!-- Features Pills -->
+  <g transform="translate(70, 340)">
+    <rect x="0" y="0" width="168" height="34" rx="8" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.1" />
+    <text x="84" y="21" fill="#e2e8f0" font-family="sans-serif" font-size="13" font-weight="500" text-anchor="middle">Master Quality MQA</text>
+
+    <rect x="180" y="0" width="128" height="34" rx="8" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.1" />
+    <text x="244" y="21" fill="#e2e8f0" font-family="sans-serif" font-size="13" font-weight="500" text-anchor="middle">Dolby Atmos</text>
+
+    <rect x="320" y="0" width="156" height="34" rx="8" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.1" />
+    <text x="398" y="21" fill="#e2e8f0" font-family="sans-serif" font-size="13" font-weight="500" text-anchor="middle">Sony 360 Reality</text>
+  </g>
+
+  <!-- Audio Wave Graphic Right -->
+  <g transform="translate(570, 170)" opacity="0.75">
+    <rect x="0" y="50" width="8" height="60" rx="4" fill="#06b6d4" />
+    <rect x="16" y="25" width="8" height="110" rx="4" fill="#22d3ee" />
+    <rect x="32" y="40" width="8" height="80" rx="4" fill="#06b6d4" />
+    <rect x="48" y="10" width="8" height="140" rx="4" fill="#38bdf8" />
+    <rect x="64" y="30" width="8" height="100" rx="4" fill="#22d3ee" />
+    <rect x="80" y="55" width="8" height="50" rx="4" fill="#06b6d4" />
+    <rect x="96" y="20" width="8" height="120" rx="4" fill="#38bdf8" />
+    <rect x="112" y="45" width="8" height="70" rx="4" fill="#06b6d4" />
+    <rect x="128" y="60" width="8" height="40" rx="4" fill="#06b6d4" opacity="0.6"/>
+  </g>
+
+  <!-- Bottom Brand Note -->
+  <text x="70" y="445" fill="#64748b" font-family="sans-serif" font-size="13">Hi-Res FLAC up to 24-bit, 192 kHz • Studio Quality</text>
+</svg>

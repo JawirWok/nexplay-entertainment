@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 533" width="800" height="533">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1c1917" />
+      <stop offset="50%" stop-color="#292524" />
+      <stop offset="100%" stop-color="#18181b" />
+    </linearGradient>
+    <radialGradient id="glow" cx="65%" cy="35%" r="60%">
+      <stop offset="0%" stop-color="#fa2d48" stop-opacity="0.25" />
+      <stop offset="100%" stop-color="#fa2d48" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="applePink" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fc3c44" />
+      <stop offset="100%" stop-color="#f94c57" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="533" fill="url(#bg)" />
+  <rect width="800" height="533" fill="url(#glow)" />
+
+  <!-- Subtle grid texture -->
+  <g opacity="0.04" stroke="#ffffff" stroke-width="1">
+    <line x1="0" y1="133" x2="800" y2="133" />
+    <line x1="0" y1="266" x2="800" y2="266" />
+    <line x1="0" y1="400" x2="800" y2="400" />
+    <line x1="200" y1="0" x2="200" y2="533" />
+    <line x1="400" y1="0" x2="400" y2="533" />
+    <line x1="600" y1="0" x2="600" y2="533" />
+  </g>
+
+  <!-- Music Badge / Card outline -->
+  <rect x="40" y="40" width="720" height="453" rx="20" fill="none" stroke="#ffffff" stroke-opacity="0.08" stroke-width="1.5" />
+
+  <!-- Top bar -->
+  <g transform="translate(70, 75)">
+    <rect width="92" height="28" rx="6" fill="#fa2d48" fill-opacity="0.15" stroke="#fa2d48" stroke-opacity="0.3" stroke-width="1" />
+    <text x="46" y="18" fill="#fc3c44" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="700" letter-spacing="1" text-anchor="middle">OFFICIAL</text>
+  </g>
+
+  <!-- Apple Music Brand Mark -->
+  <g transform="translate(70, 130)">
+    <!-- Icon Container -->
+    <rect width="76" height="76" rx="18" fill="url(#applePink)" />
+    <!-- Music Note Icon -->
+    <path d="M48 24v22.5a7.5 7.5 0 1 1-6-2.93V31.2l-18 4.2v18.1a7.5 7.5 0 1 1-6-2.93V27.5a2 2 0 0 1 1.55-1.95l26-6.1A2 2 0 0 1 48 21.4v2.6z" fill="#ffffff" />
+  </g>
+
+  <!-- Typography -->
+  <text x="70" y="260" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', Roboto, sans-serif" font-size="38" font-weight="700" letter-spacing="-0.5">Apple Music</text>
+  <text x="70" y="295" fill="#a1a1aa" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', Roboto, sans-serif" font-size="18" font-weight="500">1 Bulan Akses Individual • Langganan Resmi</text>
+
+  <!-- Features Pills -->
+  <g transform="translate(70, 340)">
+    <rect x="0" y="0" width="130" height="34" rx="8" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.1" />
+    <text x="65" y="21" fill="#e4e4e7" font-family="sans-serif" font-size="13" font-weight="500" text-anchor="middle">Spatial Audio</text>
+
+    <rect x="142" y="0" width="124" height="34" rx="8" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.1" />
+    <text x="204" y="21" fill="#e4e4e7" font-family="sans-serif" font-size="13" font-weight="500" text-anchor="middle">Dolby Atmos</text>
+
+    <rect x="278" y="0" width="150" height="34" rx="8" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.1" />
+    <text x="353" y="21" fill="#e4e4e7" font-family="sans-serif" font-size="13" font-weight="500" text-anchor="middle">Lossless Audio</text>
+  </g>
+
+  <!-- Graphic Wave Right Side -->
+  <g transform="translate(560, 160)" opacity="0.85">
+    <circle cx="90" cy="90" r="90" fill="#fc3c44" fill-opacity="0.1" />
+    <circle cx="90" cy="90" r="65" fill="#fc3c44" fill-opacity="0.15" />
+    <path d="M45 90 C 45 65, 135 65, 135 90 C 135 115, 45 115, 45 90" stroke="#fc3c44" stroke-width="3" fill="none" opacity="0.6"/>
+    <circle cx="90" cy="90" r="28" fill="#fc3c44" />
+    <path d="M85 80v20l16-10z" fill="#ffffff" />
+  </g>
+
+  <!-- Bottom Brand Note -->
+  <text x="70" y="445" fill="#71717a" font-family="sans-serif" font-size="13">Digital Subscription Code • Instant Activation</text>
+</svg>

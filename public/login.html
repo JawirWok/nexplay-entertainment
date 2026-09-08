@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Login ke akun NexPlay kamu untuk mulai belanja digital entertainment.">
+    <title>Login — NexPlay</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎮</text></svg>">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">
+            <div class="logo-icon">🎮</div>
+            <span>Nex<span class="text-gradient">Play</span></span>
+        </a>
+        <ul class="navbar-nav" id="navbar-nav">
+            <li><a href="/" class="nav-link">🏠 Home</a></li>
+        </ul>
+        <button class="mobile-toggle" id="mobile-toggle">☰</button>
+        <div class="nav-actions" id="nav-actions">
+            <a href="/login.html" class="btn btn-secondary btn-sm">Login</a>
+            <a href="/register.html" class="btn btn-primary btn-sm">Register</a>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="auth-container">
+            <div class="glass-card auth-card">
+                <h2>Welcome Back 👋</h2>
+                <p class="auth-subtitle">Login ke akun NexPlay kamu</p>
+
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <input type="text" id="username" class="form-control" placeholder="Masukkan username" required autocomplete="username">
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" class="form-control" placeholder="Masukkan password" required autocomplete="current-password">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg" style="width:100%" id="login-btn">
+                        🚀 Login
+                    </button>
+                </form>
+
+                <div class="auth-footer">
+                    Belum punya akun? <a href="/register.html">Register sekarang</a>
+                </div>
+
+                <div style="margin-top:24px;padding:16px;background:var(--bg-tertiary);border:var(--border-light);border-radius:var(--radius-md)">
+                    <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:8px;font-weight:600">Demo Accounts:</div>
+                    <div style="font-size:0.85rem;margin-bottom:4px">👑 Admin: <code style="color:#18181b;font-weight:700;background:#ffffff;padding:2px 6px;border-radius:4px;border:var(--border-light)">admin</code> / <code style="color:#18181b;font-weight:700;background:#ffffff;padding:2px 6px;border-radius:4px;border:var(--border-light)">admin123</code></div>
+                    <div style="font-size:0.85rem">👤 User: <code style="color:#18181b;font-weight:700;background:#ffffff;padding:2px 6px;border-radius:4px;border:var(--border-light)">user1</code> / <code style="color:#18181b;font-weight:700;background:#ffffff;padding:2px 6px;border-radius:4px;border:var(--border-light)">user123</code></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="/js/app.js"></script>
+    <script>
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('login-btn');
+            btn.disabled = true;
+            btn.textContent = 'Loading...';
+
+            try {
+                const data = await API.post('/api/auth/login', {
+                    username: document.getElementById('username').value,
+                    password: document.getElementById('password').value
+                });
+
+                showToast('Login berhasil! Selamat datang, ' + data.user.username, 'success');
+
+                setTimeout(() => {
+                    if (data.user.role === 'admin') {
+                        window.location.href = '/admin/dashboard.html';
+                    } else {
+                        window.location.href = '/';
+                    }
+                }, 800);
+            } catch (err) {
+                showToast(err.message, 'error');
+                btn.disabled = false;
+                btn.textContent = '🚀 Login';
+            }
+        });
+    </script>
+</body>
+</html>

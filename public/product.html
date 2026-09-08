@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Detail produk digital entertainment di NexPlay.">
+    <title>Detail Produk — NexPlay</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎮</text></svg>">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">
+            <div class="logo-icon">🎮</div>
+            <span>Nex<span class="text-gradient">Play</span></span>
+        </a>
+        <ul class="navbar-nav" id="navbar-nav">
+            <li><a href="/" class="nav-link">🏠 Home</a></li>
+            <li><a href="/#catalog" class="nav-link">🎯 Katalog</a></li>
+        </ul>
+        <button class="mobile-toggle" id="mobile-toggle">☰</button>
+        <div class="nav-actions" id="nav-actions">
+            <a href="/login.html" class="btn btn-secondary btn-sm">Login</a>
+            <a href="/register.html" class="btn btn-primary btn-sm">Register</a>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="container">
+            <section class="product-detail">
+                <div id="product-content">
+                    <div class="page-loading"><div class="loading-spinner"></div></div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script src="/js/app.js"></script>
+    <script>
+        async function loadProduct() {
+            const params = new URLSearchParams(window.location.search);
+            const id = params.get('id');
+
+            if (!id) {
+                window.location.href = '/';
+                return;
+            }
+
+            try {
+                const data = await API.get(`/api/products/${id}`);
+                const p = data.product;
+
+                document.title = `${p.name} — NexPlay`;
+
+                document.getElementById('product-content').innerHTML = `
+                    <div class="product-detail-layout">
+                        <div class="glass-card product-detail-image">
+                            ${p.image_url ? `<img src="${p.image_url}" alt="${p.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : ''}
+                            <div class="placeholder-img" style="${p.image_url ? 'display:none;' : ''}font-size:5rem">${getCategoryIcon(p.category)}</div>
+                        </div>
+                        <div class="product-detail-info">
+                            <span class="category-badge ${p.category}" style="margin-bottom:12px;display:inline-block">${p.category.toUpperCase()}</span>
+                            <h1>${p.name}</h1>
+                            <div class="product-meta">
+                                <span class="product-meta-item">⭐ ${p.rating}/5</span>
+                                <span class="product-meta-item">🏢 ${p.developer}</span>
+                                <span class="product-meta-item">📅 ${p.release_year}</span>
+                                <span class="product-meta-item">💻 ${p.platform}</span>
+                            </div>
+                            <div class="product-price">${formatRupiah(p.price)}</div>
+                            <p class="product-description">${p.description}</p>
+
+                            <div style="margin-bottom:24px">
+                                <div style="display:flex;gap:24px;flex-wrap:wrap">
+                                    <div>
+                                        <span style="font-size:0.85rem;color:var(--text-muted)">Stok</span>
+                                        <div style="font-weight:600;color:${p.stock > 10 ? 'var(--accent-green)' : 'var(--accent-orange)'}">${p.stock > 0 ? p.stock + ' tersedia' : 'Habis'}</div>
+                                    </div>
+                                    <div>
+                                        <span style="font-size:0.85rem;color:var(--text-muted)">Platform</span>
+                                        <div style="font-weight:600">${p.platform}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="product-detail-actions">
+                                <button class="btn btn-primary btn-lg" onclick="addToCart(${p.id})" ${p.stock <= 0 ? 'disabled' : ''}>
+                                    🛒 Tambah ke Keranjang
+                                </button>
+                                <button class="btn btn-secondary btn-lg" onclick="buyNow(${p.id})" ${p.stock <= 0 ? 'disabled' : ''}>
+                                    ⚡ Beli Sekarang
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } catch (err) {
+                document.getElementById('product-content').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">😕</div>
+                        <h3>Produk tidak ditemukan</h3>
+                        <p>Produk yang kamu cari mungkin sudah dihapus</p>
+                        <a href="/" class="btn btn-primary">Kembali ke Home</a>
+                    </div>
+                `;
+            }
+        }
+
+        async function buyNow(productId) {
+            await addToCart(productId);
+            setTimeout(() => {
+                window.location.href = '/cart.html';
+            }, 500);
+        }
+
+        document.addEventListener('DOMContentLoaded', loadProduct);
+    </script>
+</body>
+</html>
