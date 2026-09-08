@@ -10,9 +10,77 @@ const DB_PATH = IS_VERCEL ? TMP_DB_PATH : ROOT_DB_PATH;
 
 let db = null;
 
+const SCHEMA_SQL = `
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    role TEXT DEFAULT 'user' CHECK(role IN ('admin', 'user')),
+    avatar TEXT DEFAULT '',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS products (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    description TEXT,
+    price REAL NOT NULL,
+    category TEXT NOT NULL CHECK(category IN ('game', 'film', 'music', 'ebook')),
+    image_url TEXT DEFAULT '',
+    stock INTEGER DEFAULT 100,
+    rating REAL DEFAULT 0,
+    platform TEXT DEFAULT '',
+    developer TEXT DEFAULT '',
+    release_year INTEGER DEFAULT 2024,
+    featured INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS cart_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    product_id INTEGER NOT NULL,
+    quantity INTEGER DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (product_id) REFERENCES products(id)
+);
+
+CREATE TABLE IF NOT EXISTS orders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    total_amount REAL NOT NULL,
+    payment_method TEXT,
+    payment_status TEXT DEFAULT 'pending' CHECK(payment_status IN ('pending', 'processing', 'success', 'failed', 'refunded')),
+    order_code TEXT UNIQUE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+CREATE TABLE IF NOT EXISTS order_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id INTEGER NOT NULL,
+    product_id INTEGER NOT NULL,
+    quantity INTEGER DEFAULT 1,
+    price REAL NOT NULL,
+    FOREIGN KEY (order_id) REFERENCES orders(id),
+    FOREIGN KEY (product_id) REFERENCES products(id)
+);
+`;
+
 async function initDatabase() {
     if (db) return db;
-    const SQL = await initSqlJs();
+
+    let SQL;
+    try {
+        const wasmPath = path.join(path.dirname(require.resolve('sql.js')), 'sql-wasm.wasm');
+        SQL = await initSqlJs({
+            locateFile: () => wasmPath
+        });
+    } catch (e) {
+        SQL = await initSqlJs();
+    }
 
     // On Vercel, copy database to /tmp if not yet present
     if (IS_VERCEL && !fs.existsSync(TMP_DB_PATH) && fs.existsSync(ROOT_DB_PATH)) {
@@ -42,10 +110,9 @@ async function initDatabase() {
         db = new SQL.Database();
     }
 
-    // Read and execute schema
+    // Execute schema
     try {
-        const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
-        db.run(schema);
+        db.run(SCHEMA_SQL);
     } catch (e) {
         console.warn('Schema execution note:', e.message);
     }
@@ -79,7 +146,6 @@ function saveDatabase() {
             const buffer = Buffer.from(data);
             fs.writeFileSync(DB_PATH, buffer);
         } catch (e) {
-            // In serverless, catch any read-only disk errors safely
             console.warn('Notice: Disk save skipped in serverless environment:', e.message);
         }
     }
