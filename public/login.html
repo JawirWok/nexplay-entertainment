@@ -71,6 +71,11 @@
                     password: document.getElementById('password').value
                 });
 
+                if (data.user) {
+                    localStorage.setItem('nexplay_user', JSON.stringify(data.user));
+                    AppState.user = data.user;
+                }
+
                 showToast('Login berhasil! Selamat datang, ' + data.user.username, 'success');
 
                 setTimeout(() => {
@@ -79,7 +84,7 @@
                     } else {
                         window.location.href = '/';
                     }
-                }, 800);
+                }, 600);
             } catch (err) {
                 showToast(err.message, 'error');
                 btn.disabled = false;

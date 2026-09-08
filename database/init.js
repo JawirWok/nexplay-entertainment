@@ -111,17 +111,47 @@ function createFallbackDb() {
     });
 
     const cartItems = [];
-    const orders = [];
-    const orderItems = [];
+    const orders = [
+        { id: 1, user_id: 2, total_amount: 498000, payment_method: 'qris', payment_status: 'success', order_code: 'NXP-DEMO-001', created_at: new Date(Date.now() - 3600000).toISOString() },
+        { id: 2, user_id: 3, total_amount: 299000, payment_method: 'bca_va', payment_status: 'pending', order_code: 'NXP-DEMO-002', created_at: new Date(Date.now() - 1800000).toISOString() }
+    ];
+    const orderItems = [
+        { id: 1, order_id: 1, product_id: 1, quantity: 1, price: 299000 },
+        { id: 2, order_id: 1, product_id: 2, quantity: 1, price: 199000 },
+        { id: 3, order_id: 2, product_id: 1, quantity: 1, price: 299000 }
+    ];
 
     return {
         exec(sql, params = []) {
             sql = (sql || '').trim();
 
-            if (sql.includes('COUNT(*) as count FROM users') || sql.includes('count FROM users')) {
+            // Stats / Aggregates queries
+            if (sql.includes('SELECT COUNT(*) FROM orders') || sql.includes('COUNT(*) FROM orders')) {
+                if (sql.includes('payment_status = "pending"')) {
+                    const c = orders.filter(o => o.payment_status === 'pending').length;
+                    return [{ columns: ['count'], values: [[c]] }];
+                }
+                return [{ columns: ['count'], values: [[orders.length]] }];
+            }
+
+            if (sql.includes('SUM(total_amount)')) {
+                const total = orders.filter(o => o.payment_status === 'success').reduce((acc, o) => acc + (o.total_amount || 0), 0);
+                return [{ columns: ['total'], values: [[total]] }];
+            }
+
+            if (sql.includes('COUNT(*) FROM users') || sql.includes('count FROM users')) {
+                if (sql.includes('role = "user"')) {
+                    const c = users.filter(u => u.role === 'user').length;
+                    return [{ columns: ['count'], values: [[c]] }];
+                }
                 return [{ columns: ['count'], values: [[users.length]] }];
             }
 
+            if (sql.includes('COUNT(*) FROM products')) {
+                return [{ columns: ['count'], values: [[products.length]] }];
+            }
+
+            // Products queries
             if (sql.includes('SELECT') && sql.includes('FROM products')) {
                 let list = [...products];
                 if (params && params.length) {
@@ -135,7 +165,18 @@ function createFallbackDb() {
                 return [{ columns: prodCols, values }];
             }
 
-            if (sql.includes('SELECT') && sql.includes('FROM users')) {
+            // Role check query
+            if (sql.includes('SELECT role FROM users')) {
+                let u = users;
+                if (params && params.length && sql.includes('WHERE id = ?')) {
+                    u = users.filter(x => x.id == params[0]);
+                }
+                const r = u.length > 0 ? u[0].role : 'user';
+                return [{ columns: ['role'], values: [[r]] }];
+            }
+
+            // Users queries
+            if (sql.includes('FROM users')) {
                 let u = users;
                 if (params && params.length) {
                     if (sql.includes('username = ? OR email = ?')) {
@@ -146,11 +187,25 @@ function createFallbackDb() {
                         u = users.filter(x => x.id == params[0]);
                     }
                 }
+
+                if (sql.includes('SELECT id, username, email, role, created_at')) {
+                    const cols = ['id', 'username', 'email', 'role', 'created_at'];
+                    const values = u.map(x => cols.map(c => x[c]));
+                    return [{ columns: cols, values }];
+                }
+
+                if (sql.includes('SELECT id, username, email, role')) {
+                    const cols = ['id', 'username', 'email', 'role'];
+                    const values = u.map(x => cols.map(c => x[c]));
+                    return [{ columns: cols, values }];
+                }
+
                 const cols = ['id', 'username', 'email', 'password', 'role', 'created_at'];
                 const values = u.map(x => cols.map(c => x[c]));
                 return [{ columns: cols, values }];
             }
 
+            // Cart items
             if (sql.includes('FROM cart_items')) {
                 const cols = ['id', 'quantity', 'product_id', 'name', 'price', 'image_url', 'category'];
                 const values = cartItems.map(c => {
@@ -160,13 +215,35 @@ function createFallbackDb() {
                 return [{ columns: cols, values }];
             }
 
-            if (sql.includes('FROM orders')) {
-                const cols = ['id', 'user_id', 'total_amount', 'payment_method', 'payment_status', 'order_code', 'created_at'];
-                const values = orders.map(o => cols.map(c => o[c]));
+            // Order items join
+            if (sql.includes('FROM order_items')) {
+                const cols = ['id', 'order_id', 'product_id', 'quantity', 'price', 'name', 'image_url', 'category'];
+                let filtered = orderItems;
+                if (params && params.length && sql.includes('WHERE oi.order_id = ?')) {
+                    filtered = orderItems.filter(oi => oi.order_id == params[0]);
+                }
+                const values = filtered.map(oi => {
+                    const p = products.find(x => x.id == oi.product_id) || {};
+                    return [oi.id, oi.order_id, oi.product_id, oi.quantity, oi.price, p.name || '', p.image_url || '', p.category || ''];
+                });
                 return [{ columns: cols, values }];
             }
 
-            return [{ columns: ['id'], values: [] }];
+            // Orders list
+            if (sql.includes('FROM orders')) {
+                const cols = ['id', 'user_id', 'total_amount', 'payment_method', 'payment_status', 'order_code', 'created_at', 'username'];
+                let list = orders;
+                if (params && params.length && sql.includes('WHERE user_id = ?')) {
+                    list = orders.filter(o => o.user_id == params[0]);
+                }
+                const values = list.map(o => {
+                    const u = users.find(x => x.id == o.user_id) || {};
+                    return [o.id, o.user_id, o.total_amount, o.payment_method, o.payment_status, o.order_code, o.created_at, u.username || 'user'];
+                });
+                return [{ columns: cols, values }];
+            }
+
+            return [{ columns: ['id'], values: [[0]] }];
         },
 
         run(sql, params = []) {

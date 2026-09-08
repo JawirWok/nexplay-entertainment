@@ -3,10 +3,26 @@
 // ═══════════════════════════════════════════════════════════
 
 const API = {
+    getHeaders() {
+        const headers = { 'Content-Type': 'application/json' };
+        let user = AppState.user;
+        if (!user) {
+            try {
+                user = JSON.parse(localStorage.getItem('nexplay_user') || 'null');
+                if (user) AppState.user = user;
+            } catch (e) { }
+        }
+        if (user && user.id) {
+            headers['x-user-id'] = String(user.id);
+            headers['x-user-role'] = String(user.role || (user.id == 1 ? 'admin' : 'user'));
+        }
+        return headers;
+    },
     async request(url, options = {}) {
         try {
+            const headers = { ...this.getHeaders(), ...options.headers };
             const res = await fetch(url, {
-                headers: { 'Content-Type': 'application/json', ...options.headers },
+                headers,
                 credentials: 'include',
                 ...options
             });
@@ -151,8 +167,19 @@ function updateNavUI() {
 // ── Auth Check ──
 async function checkAuth() {
     try {
+        const cached = JSON.parse(localStorage.getItem('nexplay_user') || 'null');
+        if (cached) {
+            AppState.user = cached;
+            updateNavUI();
+        }
+    } catch (e) { }
+
+    try {
         const data = await API.get('/api/auth/me');
-        AppState.user = data.user;
+        if (data.user) {
+            AppState.user = data.user;
+            localStorage.setItem('nexplay_user', JSON.stringify(data.user));
+        }
 
         // Get cart count
         try {
@@ -162,8 +189,11 @@ async function checkAuth() {
 
         updateNavUI();
     } catch (err) {
-        AppState.user = null;
-        updateNavUI();
+        if (!AppState.user) {
+            localStorage.removeItem('nexplay_user');
+            AppState.user = null;
+            updateNavUI();
+        }
     }
 }
 
@@ -171,15 +201,14 @@ async function checkAuth() {
 async function logout() {
     try {
         await API.post('/api/auth/logout');
-        AppState.user = null;
-        AppState.cartCount = 0;
-        showToast('Logged out successfully', 'success');
-        updateNavUI();
-        if (window.location.pathname.includes('admin') || window.location.pathname.includes('orders') || window.location.pathname.includes('cart') || window.location.pathname.includes('checkout')) {
-            window.location.href = '/';
-        }
-    } catch (err) {
-        showToast('Logout failed', 'error');
+    } catch (e) { }
+    localStorage.removeItem('nexplay_user');
+    AppState.user = null;
+    AppState.cartCount = 0;
+    showToast('Logged out successfully', 'success');
+    updateNavUI();
+    if (window.location.pathname.includes('admin') || window.location.pathname.includes('orders') || window.location.pathname.includes('cart') || window.location.pathname.includes('checkout')) {
+        window.location.href = '/';
     }
 }
 
