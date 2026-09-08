@@ -171,7 +171,16 @@ function createFallbackDb() {
 
         run(sql, params = []) {
             sql = (sql || '').trim();
-            if (sql.startsWith('INSERT INTO cart_items')) {
+            if (sql.startsWith('INSERT INTO users')) {
+                users.push({
+                    id: users.length + 1,
+                    username: params[0],
+                    email: params[1],
+                    password: params[2],
+                    role: params[3] || 'user',
+                    created_at: new Date().toISOString()
+                });
+            } else if (sql.startsWith('INSERT INTO cart_items')) {
                 cartItems.push({ id: cartItems.length + 1, user_id: params[0] || 1, product_id: params[1], quantity: params[2] || 1 });
             } else if (sql.startsWith('DELETE FROM cart_items')) {
                 cartItems.length = 0;
