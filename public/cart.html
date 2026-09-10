@@ -11,12 +11,12 @@
 <body>
     <nav class="navbar">
         <a href="/" class="navbar-brand">
-            <div class="logo-icon">🎮</div>
+            <div class="logo-icon"><i data-lucide="gamepad-2"></i></div>
             <span>Nex<span class="text-gradient">Play</span></span>
         </a>
         <ul class="navbar-nav" id="navbar-nav">
-            <li><a href="/" class="nav-link">🏠 Home</a></li>
-            <li><a href="/#catalog" class="nav-link">🎯 Katalog</a></li>
+            <li><a href="/" class="nav-link"><i data-lucide="home" style="width:16px;height:16px;margin-bottom:-2px"></i> Home</a></li>
+            <li><a href="/#catalog" class="nav-link"><i data-lucide="target" style="width:16px;height:16px;margin-bottom:-2px"></i> Katalog</a></li>
         </ul>
         <button class="mobile-toggle" id="mobile-toggle">☰</button>
         <div class="nav-actions" id="nav-actions"></div>
@@ -25,7 +25,7 @@
     <main class="main-content">
         <div class="container cart-page">
             <div class="page-header">
-                <h1>🛒 Keranjang <span class="text-gradient">Belanja</span></h1>
+                <h1><i data-lucide="shopping-cart" style="width:32px;height:32px;display:inline-block;vertical-align:middle;margin-right:8px;color:var(--accent-primary)"></i> Keranjang <span class="text-gradient">Belanja</span></h1>
                 <p>Review item sebelum checkout</p>
             </div>
 
@@ -86,7 +86,7 @@
                     if (cartItems.length === 0) {
                         document.getElementById('cart-content').innerHTML = `
                             <div class="empty-state">
-                                <div class="empty-icon">🔒</div>
+                                <div class="empty-icon"><i data-lucide="lock" style="width:48px;height:48px;margin:auto"></i></div>
                                 <h3>Login diperlukan</h3>
                                 <p>Silakan login untuk melihat keranjang belanja kamu</p>
                                 <a href="/login.html" class="btn btn-primary">Login</a>

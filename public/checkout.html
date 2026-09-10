@@ -11,12 +11,12 @@
 <body>
     <nav class="navbar">
         <a href="/" class="navbar-brand">
-            <div class="logo-icon">🎮</div>
+            <div class="logo-icon"><i data-lucide="gamepad-2"></i></div>
             <span>Nex<span class="text-gradient">Play</span></span>
         </a>
         <ul class="navbar-nav" id="navbar-nav">
-            <li><a href="/" class="nav-link">🏠 Home</a></li>
-            <li><a href="/cart.html" class="nav-link">🛒 Keranjang</a></li>
+            <li><a href="/" class="nav-link"><i data-lucide="home" style="width:16px;height:16px;margin-bottom:-2px"></i> Home</a></li>
+            <li><a href="/cart.html" class="nav-link"><i data-lucide="shopping-cart" style="width:32px;height:32px;display:inline-block;vertical-align:middle;margin-right:8px;color:var(--accent-primary)"></i> Keranjang</a></li>
         </ul>
         <button class="mobile-toggle" id="mobile-toggle">☰</button>
         <div class="nav-actions" id="nav-actions"></div>
@@ -25,7 +25,7 @@
     <main class="main-content">
         <div class="container checkout-page">
             <div class="page-header" style="text-align:center">
-                <h1>💳 <span class="text-gradient">Checkout</span></h1>
+                <h1><i data-lucide="credit-card" style="width:32px;height:32px;display:inline-block;vertical-align:middle;margin-right:8px;color:var(--text-primary)"></i> <span class="text-gradient">Checkout</span></h1>
                 <p>Pilih metode pembayaran untuk menyelesaikan pesanan</p>
             </div>
 
@@ -122,7 +122,7 @@
                 if (!checkoutItems || checkoutItems.length === 0) {
                     document.getElementById('checkout-content').innerHTML = `
                         <div class="empty-state">
-                            <div class="empty-icon">🛒</div>
+                            <div class="empty-icon"><i data-lucide="shopping-cart" style="width:48px;height:48px;margin:auto"></i></div>
                             <h3>Keranjang kosong</h3>
                             <p>Tambahkan produk ke keranjang terlebih dahulu</p>
                             <a href="/" class="btn btn-primary">Jelajahi Katalog</a>
@@ -268,7 +268,7 @@
                 </div>
 
                 <button class="btn btn-primary btn-lg" style="width:100%" id="pay-btn" onclick="processPayment()" ${selectedMethod ? '' : 'disabled'}>
-                    ${selectedMethod ? `💳 Bayar ${formatRupiah(cartData.finalTotal)}` : '🔒 Pilih Metode Pembayaran Dulu'}
+                    ${selectedMethod ? `💳 Bayar ${formatRupiah(cartData.finalTotal)}` : '<i data-lucide="lock" style="width:48px;height:48px;margin:auto"></i> Pilih Metode Pembayaran Dulu'}
                 </button>
             `;
         }
