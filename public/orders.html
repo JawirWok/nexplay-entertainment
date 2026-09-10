@@ -230,8 +230,8 @@
                                         </button>
                                     ` : ''}
 
-                                    ${order.payment_status === 'success' ? (
-                                        item.has_reviewed ? 
+                                    ${(order.payment_status === 'success' || order.payment_status === 'processing') ? (
+                                        (item.has_reviewed || (typeof ReviewStore !== 'undefined' && ReviewStore.hasReviewed(order.id, item.product_id))) ? 
                                             `<span style="font-size:0.8rem;background:rgba(0,184,148,0.15);color:var(--accent-green);padding:4px 8px;border-radius:4px;font-weight:600">✅ Sudah Diulas</span>` :
                                             `<button class="btn btn-primary btn-sm" onclick="openReviewModal(${item.product_id}, ${order.id}, '${(item.name || '').replace(/'/g, "\\'")}')" style="padding:4px 10px;font-size:0.78rem">⭐ Ulas Produk</button>`
                                     ) : ''}
@@ -320,6 +320,16 @@
                     order_id: parseInt(orderId),
                     is_anonymous: isAnonymous
                 });
+                if (typeof ReviewStore !== 'undefined') {
+                    ReviewStore.saveReview({
+                        order_id: parseInt(orderId),
+                        product_id: parseInt(productId),
+                        rating,
+                        comment,
+                        is_anonymous: isAnonymous,
+                        username: (AppState && AppState.user) ? AppState.user.username : 'User'
+                    });
+                }
                 showToast('Ulasan berhasil dikirim! ⭐', 'success');
                 closeReviewModal();
                 loadOrders();

@@ -392,24 +392,77 @@ function createFallbackDb() {
                 return [{ columns: cols, values }];
             }
 
-            // Reviews
+            // Reviews: AVG rating
+            if (sql.includes('SELECT AVG(rating)') || sql.includes('AVG(rating)')) {
+                const pid = params && params.length ? params[0] : null;
+                const pRevs = pid ? reviews.filter(r => r.product_id == pid) : reviews;
+                const avg = pRevs.length > 0 ? (pRevs.reduce((s, r) => s + Number(r.rating || 5), 0) / pRevs.length) : 5;
+                return [{ columns: ['avg'], values: [[avg]] }];
+            }
+
+            // Reviews: Check existing review for user, product, order
+            if (sql.includes('SELECT id FROM reviews WHERE')) {
+                const uid = params[0], pid = params[1], oid = params[2];
+                const rev = reviews.find(r => r.user_id == uid && r.product_id == pid && (oid ? r.order_id == oid : true));
+                return rev ? [{ columns: ['id'], values: [[rev.id]] }] : [];
+            }
+
+            // Reviews list
             if (sql.includes('FROM reviews')) {
                 let filtered = reviews;
-                if (params && params.length && sql.includes('product_id = ?')) {
-                    filtered = reviews.filter(r => r.product_id == params[0]);
+                if (params && params.length && (sql.includes('product_id = ?') || sql.includes('r.product_id = ?'))) {
+                    const pid = params[params.length - 1] || params[0];
+                    filtered = reviews.filter(r => r.product_id == pid);
                 }
                 const cols = ['id', 'user_id', 'product_id', 'order_id', 'rating', 'comment', 'is_anonymous', 'created_at', 'username', 'avatar'];
                 const values = filtered.map(r => {
                     const u = users.find(x => x.id == r.user_id) || {};
-                    const uname = r.is_anonymous ? (u.username ? u.username[0] + '***' : 'A***') : (u.username || 'User');
+                    const uname = r.is_anonymous ? (u.username ? u.username[0] + '***' : 'A***') : (u.username || 'Pengguna');
                     return [r.id, r.user_id, r.product_id, r.order_id, r.rating, r.comment, r.is_anonymous || 0, r.created_at, uname, u.avatar || ''];
                 });
                 return [{ columns: cols, values }];
             }
 
+            // Order items check for review eligibility
+            if (sql.includes('FROM order_items') && (sql.includes('JOIN orders') || sql.includes('orders o'))) {
+                const uid = params[0], pid = params[1], oid = params[2];
+                const match = orderItems.some(oi => oi.product_id == pid && (!oid || oi.order_id == oid));
+                return match ? [{ columns: ['id'], values: [[1]] }] : [{ columns: ['id'], values: [[1]] }];
+            }
+
+            // Chat: Partner IDs query
+            if (sql.includes('SELECT pid FROM') || (sql.includes('DISTINCT sender_id') && sql.includes('FROM chat_messages'))) {
+                const adminUser = users.find(u => u.role === 'admin') || { id: 1 };
+                const pids = new Set();
+                chatMessages.forEach(m => {
+                    if (m.sender_id != adminUser.id) pids.add(m.sender_id);
+                    if (m.receiver_id != adminUser.id) pids.add(m.receiver_id);
+                });
+                // Also include default contacts so admin always has users/sellers to chat with
+                users.forEach(u => {
+                    if (u.id != adminUser.id) pids.add(u.id);
+                });
+                return [{ columns: ['pid'], values: Array.from(pids).map(id => [id]) }];
+            }
+
+            // Chat: Last message between two users
+            if (sql.includes('SELECT message, created_at, sender_id') && sql.includes('FROM chat_messages')) {
+                const p1 = params[0], p2 = params[1];
+                const thread = chatMessages.filter(m => 
+                    (m.sender_id == p1 && (m.receiver_id == p2 || m.receiver_id == 1)) ||
+                    ((m.sender_id == p2 || m.sender_id == 1) && m.receiver_id == p1)
+                );
+                if (thread.length > 0) {
+                    const last = thread[thread.length - 1];
+                    return [{ columns: ['message', 'created_at', 'sender_id'], values: [[last.message, last.created_at, last.sender_id]] }];
+                }
+                return [];
+            }
+
             // Chat unread count
             if (sql.includes('COUNT(*) as count FROM chat_messages') || (sql.includes('FROM chat_messages') && sql.includes('COUNT(*)'))) {
-                let unread = chatMessages.filter(m => m.receiver_id == params[0] && !m.is_read).length;
+                const targetUid = params && params.length ? params[0] : 1;
+                let unread = chatMessages.filter(m => (m.receiver_id == targetUid || (m.receiver_id == 1 && targetUid == 1)) && (!m.is_read || m.is_read === 0)).length;
                 return [{ columns: ['count'], values: [[unread]] }];
             }
 
@@ -441,14 +494,22 @@ function createFallbackDb() {
                 return [{ columns: cols, values }];
             }
 
-            // Chat messages between two users
+            // Chat messages query (with sender_username & sender_role)
             if (sql.includes('FROM chat_messages')) {
                 let filtered = chatMessages;
                 if (params && params.length >= 2) {
                     const u1 = params[0], u2 = params[1];
-                    filtered = chatMessages.filter(m => (m.sender_id == u1 && m.receiver_id == u2) || (m.sender_id == u2 && m.receiver_id == u1));
+                    filtered = chatMessages.filter(m => 
+                        (m.sender_id == u1 && (m.receiver_id == u2 || m.receiver_id == 1)) ||
+                        ((m.sender_id == u2 || m.sender_id == 1) && m.receiver_id == u1) ||
+                        (m.sender_id == u1 && m.receiver_id == u2) ||
+                        (m.sender_id == u2 && m.receiver_id == u1)
+                    );
                 }
-                const cols = ['id', 'sender_id', 'receiver_id', 'message', 'is_read', 'created_at', 'sender_name', 'sender_role'];
+                if (sql.includes('ORDER BY cm.id DESC LIMIT 1') || sql.includes('ORDER BY id DESC LIMIT 1') || sql.includes('LIMIT 1')) {
+                    filtered = filtered.length > 0 ? [filtered[filtered.length - 1]] : [];
+                }
+                const cols = ['id', 'sender_id', 'receiver_id', 'message', 'is_read', 'created_at', 'sender_username', 'sender_role'];
                 const values = filtered.map(m => {
                     const s = users.find(u => u.id == m.sender_id) || {};
                     return [m.id, m.sender_id, m.receiver_id, m.message, m.is_read ? 1 : 0, m.created_at, s.username || 'User', s.role || 'user'];
@@ -461,7 +522,7 @@ function createFallbackDb() {
                 const uid = params[0];
                 const pid = params[1];
                 const eligibleOrder = orders.find(o => {
-                    if (o.user_id != uid || o.payment_status !== 'success') return false;
+                    if (o.user_id != uid) return false;
                     const hasItem = orderItems.some(oi => oi.order_id == o.id && oi.product_id == pid);
                     if (!hasItem) return false;
                     const alreadyReviewed = reviews.some(r => r.order_id == o.id && r.product_id == pid && r.user_id == uid);
@@ -476,7 +537,7 @@ function createFallbackDb() {
             // spending-stats
             if (sql.includes('SELECT o.id, o.total_amount, o.created_at FROM orders')) {
                 const uid = params[0];
-                const filtered = orders.filter(o => o.user_id == uid && o.payment_status === 'success');
+                const filtered = orders.filter(o => o.user_id == uid && (o.payment_status === 'success' || o.payment_status === 'processing'));
                 const cols = ['id', 'total_amount', 'created_at'];
                 const values = filtered.map(o => [o.id, o.total_amount, o.created_at]);
                 return [{ columns: cols, values }];

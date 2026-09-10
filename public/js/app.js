@@ -132,10 +132,12 @@ const ChatCache = {
     saveAll(msgs) {
         try {
             localStorage.setItem(this.STORAGE_KEY, JSON.stringify(msgs));
+            localStorage.setItem('nexplay_chat_last_update', String(Date.now()));
         } catch (e) {}
         window.dispatchEvent(new CustomEvent('nexplay_chat_message', { detail: msgs }));
     },
     addMessage(msg) {
+        if (!msg) return;
         const all = this.getAll();
         const exists = all.some(m => 
             (m.id && msg.id && m.id === msg.id) ||
@@ -150,6 +152,26 @@ const ChatCache = {
             this.saveAll(all);
         }
     },
+    saveMessage(msg) {
+        if (!msg) return;
+        this.addMessage(msg);
+    },
+    mergeMessages(serverMessages = []) {
+        const localMsgs = this.getAll();
+        const map = new Map();
+        for (const m of (serverMessages || [])) {
+            if (m && m.id) map.set(String(m.id), m);
+        }
+        for (const m of localMsgs) {
+            const key = String(m.id || (m.sender_id + '_' + m.receiver_id + '_' + m.message));
+            if (!map.has(key)) {
+                map.set(key, m);
+            }
+        }
+        const combined = Array.from(map.values());
+        combined.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+        return combined;
+    },
     getMessagesBetween(userA, userB) {
         const a = parseInt(userA, 10), b = parseInt(userB, 10);
         return this.getAll().filter(m => 
@@ -158,6 +180,37 @@ const ChatCache = {
             (b === 1 && m.receiver_id == 1 && m.sender_id == a) ||
             (a === 1 && m.receiver_id == 1 && m.sender_id == b)
         );
+    }
+};
+
+// ── Client-Side Review Store (Resilient to Serverless Cold Starts) ──
+const ReviewStore = {
+    STORAGE_KEY: 'nexplay_user_reviews',
+    getReviews() {
+        try {
+            return JSON.parse(localStorage.getItem(this.STORAGE_KEY) || '[]');
+        } catch (e) {
+            return [];
+        }
+    },
+    saveReview(review) {
+        const list = this.getReviews();
+        const exists = list.some(r => r.order_id == review.order_id && r.product_id == review.product_id);
+        if (!exists) {
+            list.push({
+                ...review,
+                created_at: review.created_at || new Date().toISOString()
+            });
+            try {
+                localStorage.setItem(this.STORAGE_KEY, JSON.stringify(list));
+            } catch (e) {}
+        }
+    },
+    hasReviewed(orderId, productId) {
+        return this.getReviews().some(r => r.order_id == orderId && r.product_id == productId);
+    },
+    getByProduct(productId) {
+        return this.getReviews().filter(r => r.product_id == productId);
     }
 };
 

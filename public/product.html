@@ -124,15 +124,36 @@
 
         async function loadReviews(productId) {
             try {
-                const data = await API.get(`/api/products/${productId}/reviews`);
+                let reviews = [];
+                try {
+                    const data = await API.get(`/api/products/${productId}/reviews`);
+                    if (data && data.reviews) reviews = data.reviews;
+                } catch (apiErr) {
+                    console.warn('Reviews API load note:', apiErr);
+                }
+
+                // Merge with client ReviewStore
+                if (typeof ReviewStore !== 'undefined') {
+                    const localRevs = ReviewStore.getByProduct(productId);
+                    for (const lr of localRevs) {
+                        const exists = reviews.some(r => (r.id && lr.id && r.id === lr.id) || (r.comment === lr.comment && r.rating === lr.rating));
+                        if (!exists) {
+                            reviews.unshift({
+                                ...lr,
+                                username: lr.is_anonymous ? 'A***' : (lr.username || 'Saya')
+                            });
+                        }
+                    }
+                }
+
                 const container = document.getElementById('reviews-content');
-                if (!data || !data.reviews || data.reviews.length === 0) {
+                if (!reviews || reviews.length === 0) {
                     container.innerHTML = '<p style="color:var(--text-muted)">Belum ada ulasan untuk produk ini.</p>';
                     return;
                 }
                 
                 let html = '<div style="display:flex;flex-direction:column;gap:15px;margin-top:15px;">';
-                for (const r of data.reviews) {
+                for (const r of reviews) {
                     const isAnon = r.is_anonymous === 1 || r.is_anonymous === true;
                     html += `
                         <div class="glass-card" style="padding:15px">
@@ -145,7 +166,7 @@
                                 <span style="color:#f39c12">⭐ ${r.rating}/5</span>
                             </div>
                             <p style="margin:0;color:var(--text-secondary)">${r.comment || '-'}</p>
-                            <small style="color:var(--text-muted);display:block;margin-top:8px">${new Date(r.created_at).toLocaleDateString('id-ID')}</small>
+                            <small style="color:var(--text-muted);display:block;margin-top:8px">${r.created_at ? new Date(r.created_at).toLocaleDateString('id-ID') : 'Baru saja'}</small>
                         </div>
                     `;
                 }
