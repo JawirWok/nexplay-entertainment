@@ -1,5 +1,7 @@
 // NexPlay Live Chat Floating Widget for Users & Sellers
 (function() {
+    if (window.location.pathname.includes('/invoice.html')) return; // Disabled on invoice
+
     let currentUser = null;
     let isOpen = false;
     let pollTimer = null;

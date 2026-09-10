@@ -7,15 +7,27 @@
     <title>Admin Dashboard — NexPlay</title>
     <link rel="stylesheet" href="/css/style.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎮</text></svg>">
+    <script>
+        function enforceAdmin() {
+            const user = JSON.parse(localStorage.getItem('nexplay_user') || 'null');
+            if (!user || user.role !== 'admin') {
+                window.location.replace('/login.html');
+            }
+        }
+        enforceAdmin();
+        window.addEventListener('pageshow', (e) => {
+            if (e.persisted) enforceAdmin();
+        });
+    </script>
 </head>
 <body>
     <nav class="navbar">
         <a href="/" class="navbar-brand">
-            <div class="logo-icon">🎮</div>
+            <div class="logo-icon"><i data-lucide="gamepad-2"></i></div>
             <span>Nex<span class="text-gradient">Play</span></span>
         </a>
         <ul class="navbar-nav" id="navbar-nav">
-            <li><a href="/" class="nav-link">🏠 Store</a></li>
+            <li><a href="/" class="nav-link"><i data-lucide="store" style="width:16px;height:16px;margin-bottom:-2px"></i> Store</a></li>
         </ul>
         <button class="mobile-toggle" id="mobile-toggle">☰</button>
         <div class="nav-actions" id="nav-actions"></div>
@@ -26,48 +38,48 @@
             <aside class="admin-sidebar">
                 <div class="sidebar-title">Dashboard</div>
                 <ul class="sidebar-nav">
-                    <li><a href="/admin/dashboard.html" class="sidebar-link active">📊 Overview</a></li>
-                    <li><a href="/admin/products.html" class="sidebar-link">📦 Produk</a></li>
-                    <li><a href="/admin/orders.html" class="sidebar-link">🧾 Transaksi</a></li>
-                    <li><a href="/admin/vouchers.html" class="sidebar-link">🎟️ Voucher Diskon</a></li>
-                    <li><a href="/admin/revenue.html" class="sidebar-link">💰 Laporan Omset</a></li>
-                    <li><a href="/admin/users.html" class="sidebar-link">👥 Users</a></li>
-                    <li><a href="/admin/chat.html" class="sidebar-link">💬 Live Chat</a></li>
+                    <li><a href="/admin/dashboard.html" class="sidebar-link active"><i data-lucide="bar-chart-2" style="width:18px;height:18px"></i> Overview</a></li>
+                    <li><a href="/admin/products.html" class="sidebar-link"><i data-lucide="package" style="width:18px;height:18px"></i> Produk</a></li>
+                    <li><a href="/admin/orders.html" class="sidebar-link"><i data-lucide="receipt" style="width:18px;height:18px"></i> Transaksi</a></li>
+                    <li><a href="/admin/vouchers.html" class="sidebar-link"><i data-lucide="ticket" style="width:18px;height:18px"></i> Voucher Diskon</a></li>
+                    <li><a href="/admin/revenue.html" class="sidebar-link"><i data-lucide="banknote" style="width:18px;height:18px"></i> Laporan Omset</a></li>
+                    <li><a href="/admin/users.html" class="sidebar-link"><i data-lucide="users" style="width:18px;height:18px"></i> Users</a></li>
+                    <li><a href="/admin/chat.html" class="sidebar-link"><i data-lucide="message-square" style="width:18px;height:18px"></i> Live Chat</a></li>
                 </ul>
                 <div class="sidebar-title">Quick Links</div>
                 <ul class="sidebar-nav">
-                    <li><a href="/" class="sidebar-link">🏪 Lihat Store</a></li>
-                    <li><a href="#" class="sidebar-link" onclick="logout()">🚪 Logout</a></li>
+                    <li><a href="/" class="sidebar-link"><i data-lucide="store" style="width:18px;height:18px"></i> Lihat Store</a></li>
+                    <li><a href="#" class="sidebar-link" onclick="logout()"><i data-lucide="log-out" style="width:18px;height:18px"></i> Logout</a></li>
                 </ul>
             </aside>
 
             <div class="admin-content">
-                <h2 style="margin-bottom:8px">📊 Dashboard <span class="text-gradient">Overview</span></h2>
+                <h2 style="margin-bottom:8px"><i data-lucide="bar-chart-2" style="width:24px;height:24px;display:inline-block;vertical-align:middle;margin-right:8px;color:var(--accent-primary)"></i> Dashboard <span class="text-gradient">Overview</span></h2>
                 <p style="color:var(--text-secondary);margin-bottom:32px">Selamat datang di panel admin NexPlay</p>
 
                 <div class="stats-grid" id="stats-grid">
                     <div class="glass-card stat-card cyan">
-                        <div class="stat-icon">📦</div>
+                        <div class="stat-icon"><i data-lucide="package" style="width:28px;height:28px"></i></div>
                         <div class="stat-value" id="stat-orders">-</div>
                         <div class="stat-label">Total Pesanan</div>
                     </div>
                     <div class="glass-card stat-card green">
-                        <div class="stat-icon">💰</div>
+                        <div class="stat-icon"><i data-lucide="banknote" style="width:28px;height:28px"></i></div>
                         <div class="stat-value" id="stat-revenue">-</div>
                         <div class="stat-label">Total Penjualan Kotor</div>
                     </div>
                     <div class="glass-card stat-card purple">
-                        <div class="stat-icon">📈</div>
+                        <div class="stat-icon"><i data-lucide="trending-up" style="width:28px;height:28px"></i></div>
                         <div class="stat-value" id="stat-commission" style="color:var(--accent-green)">-</div>
                         <div class="stat-label">Pendapatan Admin (20%)</div>
                     </div>
                     <div class="glass-card stat-card magenta">
-                        <div class="stat-icon">👥</div>
+                        <div class="stat-icon"><i data-lucide="users" style="width:28px;height:28px"></i></div>
                         <div class="stat-value" id="stat-users">-</div>
                         <div class="stat-label">Total User</div>
                     </div>
                     <div class="glass-card stat-card orange">
-                        <div class="stat-icon">🎮</div>
+                        <div class="stat-icon"><i data-lucide="gamepad-2" style="width:28px;height:28px"></i></div>
                         <div class="stat-value" id="stat-products">-</div>
                         <div class="stat-label">Total Produk</div>
                     </div>
@@ -181,10 +193,16 @@
                     return;
                 }
                 showToast(err.message, 'error');
+            } finally {
+                if (window.lucide) lucide.createIcons();
             }
         }
 
         document.addEventListener('DOMContentLoaded', loadDashboard);
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        lucide.createIcons();
     </script>
 </body>
 </html>

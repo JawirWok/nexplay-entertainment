@@ -249,17 +249,38 @@ function formatRupiah(amount) {
 
 // ── Category Icons ──
 function getCategoryIcon(cat) {
-    const icons = { game: '🎮', film: '🎬', music: '🎵', ebook: '📚' };
-    return icons[cat] || '📦';
+    const icons = { game: '<i data-lucide="gamepad-2"></i>', film: '<i data-lucide="clapperboard"></i>', music: '<i data-lucide="music"></i>', ebook: '<i data-lucide="book"></i>' };
+    return icons[cat] || '<i data-lucide="box"></i>';
 }
 
 // ── Navbar ──
 function initNavbar() {
-    // Scroll effect
+    // Scroll effect & Scroll Spy
     window.addEventListener('scroll', () => {
         const navbar = document.querySelector('.navbar');
         if (navbar) {
             navbar.classList.toggle('scrolled', window.scrollY > 20);
+        }
+
+        // Scroll Spy
+        const sections = document.querySelectorAll('section[id]');
+        const navLinks = document.querySelectorAll('.navbar-nav .nav-link');
+        if (navLinks.length > 0 && window.location.pathname === '/') {
+            let current = '/';
+            if (window.scrollY > 200) {
+                sections.forEach(section => {
+                    const sectionTop = section.offsetTop;
+                    if (window.scrollY >= (sectionTop - 150)) {
+                        current = '#' + section.getAttribute('id');
+                    }
+                });
+            }
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === current) {
+                    link.classList.add('active');
+                }
+            });
         }
     });
 
@@ -295,7 +316,7 @@ function updateNavUI() {
         const initial = AppState.user.username.charAt(0).toUpperCase();
         navActions.innerHTML = `
             <a href="/cart.html" class="btn btn-secondary btn-icon cart-badge" id="cart-nav-btn">
-                🛒
+                <i data-lucide="shopping-cart"></i>
                 <span class="badge-count" id="cart-count" style="display:${AppState.cartCount > 0 ? 'flex' : 'none'}">${AppState.cartCount}</span>
             </a>
             <div class="user-dropdown">
@@ -303,16 +324,20 @@ function updateNavUI() {
                 <div class="dropdown-menu" id="user-dropdown">
                     <div style="padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:6px;">
                         <div style="font-weight:600;color:var(--text-primary)">${AppState.user.username}</div>
-                        <div style="font-size:0.8rem;color:var(--text-muted)">${AppState.user.role === 'admin' ? '👑 Admin' : '👤 User'}</div>
+                        <div style="font-size:0.8rem;color:var(--text-muted)">${AppState.user.role === 'admin' ? '<i data-lucide="crown" style="width:14px;height:14px"></i> Admin' : '<i data-lucide="user" style="width:14px;height:14px"></i> User'}</div>
                     </div>
-                    ${AppState.user.role === 'admin' ? '<a href="/admin/index.html">🛠️ Admin Dashboard</a>' : ''}
-                    ${AppState.user.role === 'seller' ? '<a href="/seller/index.html">🛍️ Seller Dashboard</a>' : ''}
-                    <a href="/orders.html">📦 Pesanan Saya</a>
+                    ${AppState.user.role === 'admin' ? '<a href="/admin/dashboard.html"><i data-lucide="layout-dashboard" style="width:16px;height:16px"></i> Admin Dashboard</a>' : ''}
+                    ${AppState.user.role === 'seller' ? '<a href="/seller/index.html"><i data-lucide="store" style="width:16px;height:16px"></i> Seller Dashboard</a>' : ''}
+                    <a href="/orders.html"><i data-lucide="package" style="width:16px;height:16px"></i> Pesanan Saya</a>
                     <div class="dropdown-divider"></div>
-                    <button onclick="logout()">🚪 Logout</button>
+                    <button onclick="logout()"><i data-lucide="log-out" style="width:16px;height:16px"></i> Logout</button>
                 </div>
             </div>
         `;
+
+        if (window.lucide) {
+            lucide.createIcons();
+        }
 
         // Reinitialize dropdown
         const avatar = document.getElementById('user-avatar-btn');
@@ -373,13 +398,16 @@ async function logout() {
         await API.post('/api/auth/logout');
     } catch (e) { }
     localStorage.removeItem('nexplay_user');
+    sessionStorage.removeItem('nexplay_checkout_data');
+    sessionStorage.removeItem('nexplay_checkout_items');
+    CartStore.clear(); // Clear local cart
     AppState.user = null;
     AppState.cartCount = 0;
     showToast('Logged out successfully', 'success');
     updateNavUI();
-    if (window.location.pathname.includes('admin') || window.location.pathname.includes('orders') || window.location.pathname.includes('cart') || window.location.pathname.includes('checkout')) {
-        window.location.href = '/';
-    }
+    
+    // Always redirect to home on logout to reset memory state
+    window.location.href = '/';
 }
 
 // ── Add to Cart ──

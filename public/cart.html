@@ -103,12 +103,13 @@
             if (cartItems.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
-                        <div class="empty-icon">🛒</div>
+                        <div class="empty-icon"><i data-lucide="shopping-cart" style="width:48px;height:48px;margin:auto"></i></div>
                         <h3>Keranjang kosong</h3>
                         <p>Belum ada item di keranjang. Yuk mulai belanja!</p>
                         <a href="/" class="btn btn-primary">Jelajahi Katalog</a>
                     </div>
                 `;
+                if (window.lucide) lucide.createIcons();
                 return;
             }
 
@@ -133,11 +134,12 @@
                         <span class="qty-value">${item.quantity || 1}</span>
                         <button class="qty-btn" onclick="updateQty(${itemId}, ${(item.quantity || 1) + 1})">+</button>
                     </div>
-                    <div class="item-price">
-                        ${item.discount_percentage > 0 ? `<div style="font-size:0.8rem;text-decoration:line-through;color:var(--text-muted)">${formatRupiah(item.price * (item.quantity || 1))}</div>` : ''}
-                        ${formatRupiah((item.actual_price || item.price) * (item.quantity || 1))}
+                    <div class="item-price" style="display:flex; flex-direction:column; align-items:flex-end;">
+                        ${item.discount_percentage > 0 ? `<div style="font-size:0.8rem;text-decoration:line-through;color:var(--text-muted)">${formatRupiah(item.price)}</div>` : ''}
+                        <div style="font-size:0.9rem; color:var(--text-muted)">${formatRupiah(item.actual_price || item.price)} <span style="font-size:0.8rem">x ${item.quantity || 1}</span></div>
+                        <div style="font-weight:bold; color:var(--text-primary); margin-top:4px;">${formatRupiah((item.actual_price || item.price) * (item.quantity || 1))}</div>
                     </div>
-                    <button class="item-remove" onclick="removeItem(${itemId})" title="Hapus">🗑️</button>
+                    <button class="item-remove" onclick="removeItem(${itemId})" title="Hapus"><i data-lucide="trash-2" style="width:18px;height:18px"></i></button>
                 </div>
             `}).join('');
 
@@ -145,7 +147,7 @@
                 <div class="cart-layout">
                     <div class="cart-items">${itemsHtml}</div>
                     <div class="glass-card cart-summary">
-                        <h3>📋 Ringkasan</h3>
+                        <h3><i data-lucide="clipboard-list" style="display:inline-block;width:24px;height:24px;vertical-align:middle;margin-right:8px"></i> Ringkasan</h3>
                         <div class="summary-row">
                             <span>Subtotal (${cartItems.length} item)</span>
                             <span>${formatRupiah(cartTotal)}</span>
@@ -159,7 +161,7 @@
                             <span>${formatRupiah(cartTotal)}</span>
                         </div>
                         <button class="btn btn-primary btn-lg" style="width:100%;margin-top:20px" onclick="proceedCheckout()">
-                            💳 Checkout
+                            <i data-lucide="credit-card" style="display:inline-block;width:18px;height:18px;vertical-align:middle;margin-right:8px"></i> Checkout
                         </button>
                         <a href="/" class="btn btn-secondary btn-sm" style="width:100%;margin-top:8px;text-align:center">
                             ← Lanjut Belanja
@@ -167,6 +169,7 @@
                     </div>
                 </div>
             `;
+            if (window.lucide) lucide.createIcons();
         }
 
         async function updateQty(itemId, newQty) {
@@ -222,6 +225,10 @@
             await checkAuth();
             await loadCart();
         });
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        lucide.createIcons();
     </script>
 </body>
 </html>

@@ -11,11 +11,11 @@
 <body>
     <nav class="navbar">
         <a href="/" class="navbar-brand">
-            <div class="logo-icon">🎮</div>
+            <div class="logo-icon"><i data-lucide="gamepad-2"></i></div>
             <span>Nex<span class="text-gradient">Play</span></span>
         </a>
         <ul class="navbar-nav" id="navbar-nav">
-            <li><a href="/" class="nav-link">🏠 Home</a></li>
+            <li><a href="/" class="nav-link"><i data-lucide="home" style="width:16px;height:16px;margin-bottom:-2px"></i> Home</a></li>
             <li><a href="/#catalog" class="nav-link">🎯 Katalog</a></li>
         </ul>
         <button class="mobile-toggle" id="mobile-toggle">☰</button>
@@ -25,35 +25,35 @@
     <main class="main-content">
         <div class="container" style="padding-top:40px;padding-bottom:60px">
             <div class="page-header" style="margin-bottom:24px">
-                <h1>📦 Pesanan <span class="text-gradient">Saya</span></h1>
+                <h1><i data-lucide="package" style="width:24px;height:24px;display:inline-block;vertical-align:middle;margin-right:8px;color:var(--accent-primary)"></i> Pesanan <span class="text-gradient">Saya</span></h1>
                 <p>Riwayat semua transaksi dan pengeluaran kamu di NexPlay</p>
             </div>
 
             <!-- Spending Summary Cards -->
             <div id="spending-summary-container" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:16px; margin-bottom:32px">
                 <div class="glass-card" style="padding:16px 20px; display:flex; align-items:center; gap:14px">
-                    <div style="font-size:1.8rem; background:rgba(0, 210, 255, 0.15); width:46px; height:46px; border-radius:12px; display:flex; align-items:center; justify-content:center">📅</div>
+                    <div style="font-size:1.8rem; background:rgba(0, 210, 255, 0.15); width:46px; height:46px; border-radius:12px; display:flex; align-items:center; justify-content:center"><i data-lucide="calendar" style="width:22px;height:22px;color:var(--accent-cyan)"></i></div>
                     <div>
                         <div style="font-size:0.78rem; color:var(--text-muted); font-weight:600">Pengeluaran Hari Ini</div>
                         <div id="spend-daily" style="font-size:1.1rem; font-weight:700; color:var(--text-primary); margin-top:2px">Rp 0</div>
                     </div>
                 </div>
                 <div class="glass-card" style="padding:16px 20px; display:flex; align-items:center; gap:14px">
-                    <div style="font-size:1.8rem; background:rgba(121, 40, 202, 0.15); width:46px; height:46px; border-radius:12px; display:flex; align-items:center; justify-content:center">📆</div>
+                    <div style="font-size:1.8rem; background:rgba(121, 40, 202, 0.15); width:46px; height:46px; border-radius:12px; display:flex; align-items:center; justify-content:center"><i data-lucide="calendar-days" style="width:22px;height:22px;color:var(--accent-purple)"></i></div>
                     <div>
                         <div style="font-size:0.78rem; color:var(--text-muted); font-weight:600">Pengeluaran Minggu Ini</div>
                         <div id="spend-weekly" style="font-size:1.1rem; font-weight:700; color:var(--text-primary); margin-top:2px">Rp 0</div>
                     </div>
                 </div>
                 <div class="glass-card" style="padding:16px 20px; display:flex; align-items:center; gap:14px">
-                    <div style="font-size:1.8rem; background:rgba(255, 71, 87, 0.15); width:46px; height:46px; border-radius:12px; display:flex; align-items:center; justify-content:center">🗓️</div>
+                    <div style="font-size:1.8rem; background:rgba(255, 71, 87, 0.15); width:46px; height:46px; border-radius:12px; display:flex; align-items:center; justify-content:center"><i data-lucide="calendar-range" style="width:22px;height:22px;color:var(--accent-red)"></i></div>
                     <div>
                         <div style="font-size:0.78rem; color:var(--text-muted); font-weight:600">Pengeluaran Bulan Ini</div>
                         <div id="spend-monthly" style="font-size:1.1rem; font-weight:700; color:var(--text-primary); margin-top:2px">Rp 0</div>
                     </div>
                 </div>
                 <div class="glass-card" style="padding:16px 20px; display:flex; align-items:center; gap:14px">
-                    <div style="font-size:1.8rem; background:rgba(0, 184, 148, 0.15); width:46px; height:46px; border-radius:12px; display:flex; align-items:center; justify-content:center">💰</div>
+                    <div style="font-size:1.8rem; background:rgba(0, 184, 148, 0.15); width:46px; height:46px; border-radius:12px; display:flex; align-items:center; justify-content:center"><i data-lucide="wallet" style="width:22px;height:22px;color:var(--accent-green)"></i></div>
                     <div>
                         <div style="font-size:0.78rem; color:var(--text-muted); font-weight:600">Total Pengeluaran</div>
                         <div id="spend-total" style="font-size:1.1rem; font-weight:700; color:var(--accent-green); margin-top:2px">Rp 0</div>
@@ -72,7 +72,7 @@
         <div class="glass-card" style="padding:24px; max-width:460px; width:100%; position:relative;">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
                 <div>
-                    <h3 style="margin:0 0 4px 0" id="review-title">⭐ Ulas Produk</h3>
+                    <h3 style="margin:0 0 4px 0" id="review-title"><i data-lucide="star" style="width:18px;height:18px;display:inline-block;vertical-align:middle;margin-right:6px;color:orange;fill:orange"></i> Ulas Produk</h3>
                     <p style="font-size:0.82rem;color:var(--text-muted);margin:0" id="review-subtitle">Beri penilaian untuk pesanan ini</p>
                 </div>
                 <button type="button" onclick="closeReviewModal()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:white;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;cursor:pointer" title="Tutup Modal">✕</button>
@@ -97,12 +97,12 @@
                 <div style="margin-bottom:20px">
                     <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.88rem;color:var(--text-secondary)">
                         <input type="checkbox" id="review-anonymous" style="width:16px;height:16px;accent-color:var(--accent-cyan);cursor:pointer">
-                        <span>🎭 Samarkan nama saya (Ulasan Anonim)</span>
+                        <span><i data-lucide="user-x" style="width:16px;height:16px;display:inline-block;vertical-align:middle;margin-right:4px"></i> Samarkan nama saya (Ulasan Anonim)</span>
                     </label>
                 </div>
                 <div style="display:flex;gap:10px;justify-content:flex-end">
-                    <button type="button" class="btn btn-secondary" onclick="closeReviewModal()">✕</button>
-                    <button type="submit" class="btn btn-primary">⭐ Kirim Ulasan</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeReviewModal()"><i data-lucide="x" style="width:16px;height:16px;display:inline-block;vertical-align:middle"></i> Batal</button>
+                    <button type="submit" class="btn btn-primary"><i data-lucide="star" style="width:16px;height:16px;display:inline-block;vertical-align:middle;fill:white"></i> Kirim Ulasan</button>
                 </div>
             </form>
         </div>
@@ -154,7 +154,7 @@
                 if (err.message.includes('Unauthorized') || err.message.includes('login')) {
                     document.getElementById('orders-content').innerHTML = `
                         <div class="empty-state">
-                            <div class="empty-icon">🔒</div>
+                            <div class="empty-icon"><i data-lucide="lock" style="width:48px;height:48px;margin:auto"></i></div>
                             <h3>Login diperlukan</h3>
                             <p>Silakan login untuk melihat riwayat pesanan</p>
                             <a href="/login.html" class="btn btn-primary">Login</a>
@@ -168,7 +168,7 @@
         function copyDeliveryData(btn, text) {
             navigator.clipboard.writeText(text).then(() => {
                 const orig = btn.innerHTML;
-                btn.innerHTML = '✅ Tersalin!';
+                btn.innerHTML = '<i data-lucide="check" style="width:14px;height:14px;display:inline-block;vertical-align:middle;margin-right:4px"></i> Tersalin!';
                 btn.classList.add('btn-primary');
                 setTimeout(() => {
                     btn.innerHTML = orig;
@@ -185,7 +185,7 @@
             if (orders.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
-                        <div class="empty-icon">📦</div>
+                        <div class="empty-icon"><i data-lucide="package" style="width:48px;height:48px;margin:auto"></i></div>
                         <h3>Belum ada pesanan</h3>
                         <p>Kamu belum pernah melakukan transaksi</p>
                         <a href="/" class="btn btn-primary">Mulai Belanja</a>
@@ -199,13 +199,13 @@
                     <div class="order-header">
                         <div>
                             <span class="order-code">${order.order_code}</span>
-                            ${order.voucher_code ? `<span style="font-size:0.8rem;color:var(--accent-green);margin-left:8px;font-weight:600">🎟️ ${order.voucher_code} (-${formatRupiah(order.voucher_discount)})</span>` : ''}
+                            ${order.voucher_code ? `<span style="font-size:0.8rem;color:var(--accent-green);margin-left:8px;font-weight:600"><i data-lucide="ticket" style="width:14px;height:14px;display:inline-block;vertical-align:middle"></i> ${order.voucher_code} (-${formatRupiah(order.voucher_discount)})</span>` : ''}
                             <div style="font-size:0.8rem;color:var(--text-muted);margin-top:4px">
                                 ${new Date(order.created_at).toLocaleString('id-ID')}
                             </div>
                         </div>
                         <span class="order-status status-${order.payment_status}">
-                            ${order.payment_status === 'processing' ? '🔄 Diproses (Menunggu Admin)' : (order.payment_status === 'success' ? '✅ Selesai' : order.payment_status)}
+                            ${order.payment_status === 'processing' ? '<i data-lucide="loader" class="animate-spin" style="width:14px;height:14px;display:inline-block;vertical-align:middle"></i> Diproses (Menunggu Admin)' : (order.payment_status === 'success' ? '<i data-lucide="check-circle" style="width:14px;height:14px;display:inline-block;vertical-align:middle"></i> Selesai' : order.payment_status)}
                         </span>
                     </div>
 
@@ -226,14 +226,14 @@
                                     
                                     ${(order.payment_status === 'success' || order.payment_status === 'processing') && item.delivery_data ? `
                                         <button class="btn btn-secondary btn-sm" id="toggle-acc-btn-${item.id}" onclick="toggleAccountDetails(${item.id})" style="padding:4px 10px;font-size:0.78rem">
-                                            👁️ Buka Akun
+                                            <i data-lucide="eye" style="width:14px;height:14px;display:inline-block;vertical-align:middle;margin-right:4px"></i> Buka Akun
                                         </button>
                                     ` : ''}
 
-                                    ${(order.payment_status === 'success' || order.payment_status === 'processing') ? (
+                                    ${(order.payment_status === 'success') ? (
                                         (item.has_reviewed || (typeof ReviewStore !== 'undefined' && ReviewStore.hasReviewed(order.id, item.product_id))) ? 
-                                            `<span style="font-size:0.8rem;background:rgba(0,184,148,0.15);color:var(--accent-green);padding:4px 8px;border-radius:4px;font-weight:600">✅ Sudah Diulas</span>` :
-                                            `<button class="btn btn-primary btn-sm" onclick="openReviewModal(${item.product_id}, ${order.id}, '${(item.name || '').replace(/'/g, "\\'")}')" style="padding:4px 10px;font-size:0.78rem">⭐ Ulas Produk</button>`
+                                            `<span style="font-size:0.8rem;background:rgba(0,184,148,0.15);color:var(--accent-green);padding:4px 8px;border-radius:4px;font-weight:600"><i data-lucide="check" style="width:14px;height:14px;display:inline-block;vertical-align:middle"></i> Sudah Diulas</span>` :
+                                            `<button class="btn btn-primary btn-sm" onclick="openReviewModal(${item.product_id}, ${order.id}, '${(item.name || '').replace(/'/g, "\\'")}')" style="padding:4px 10px;font-size:0.78rem"><i data-lucide="star" style="width:14px;height:14px;display:inline-block;vertical-align:middle;fill:white"></i> Ulas Produk</button>`
                                     ) : ''}
                                 </div>
 
@@ -241,11 +241,11 @@
                                     <div id="acc-box-${item.id}" style="display:none;width:100%;margin-top:12px;padding:14px 16px;background:rgba(0, 210, 255, 0.07);border:1px dashed rgba(0, 210, 255, 0.35);border-radius:10px;animation:fadeIn 0.2s ease">
                                         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
                                             <span style="font-size:0.84rem;font-weight:700;color:var(--accent-cyan);display:flex;align-items:center;gap:6px">
-                                                🔑 Detail Akun / Data Akses Produk:
+                                                <i data-lucide="key" style="width:14px;height:14px"></i> Detail Akun / Data Akses Produk:
                                             </span>
                                             <div style="display:flex;gap:8px">
-                                                <button class="btn btn-secondary btn-sm" onclick="copyDeliveryData(this, ${JSON.stringify(item.delivery_data)})" style="padding:3px 10px;font-size:0.75rem">📋 Salin Data</button>
-                                                <button class="btn btn-secondary btn-sm" onclick="toggleAccountDetails(${item.id})" style="padding:3px 8px;font-size:0.75rem" title="Tutup Detail Akun">✕ Tutup</button>
+                                                <button class="btn btn-secondary btn-sm" onclick="copyDeliveryData(this, ${JSON.stringify(item.delivery_data)})" style="padding:3px 10px;font-size:0.75rem"><i data-lucide="copy" style="width:12px;height:12px;display:inline-block;vertical-align:middle;margin-right:4px"></i> Salin Data</button>
+                                                <button class="btn btn-secondary btn-sm" onclick="toggleAccountDetails(${item.id})" style="padding:3px 8px;font-size:0.75rem" title="Tutup Detail Akun"><i data-lucide="x" style="width:12px;height:12px;display:inline-block;vertical-align:middle"></i> Tutup</button>
                                             </div>
                                         </div>
                                         <pre style="margin:0;font-family:monospace;white-space:pre-wrap;font-size:0.85rem;color:var(--text-primary);background:rgba(0,0,0,0.45);padding:12px;border-radius:8px;user-select:all">${escapeHtml(item.delivery_data)}</pre>
@@ -274,6 +274,8 @@
                     </div>
                 </div>
             `).join('');
+
+            if (window.lucide) lucide.createIcons();
         }
 
         function openReviewModal(productId, orderId, productName) {
@@ -361,7 +363,14 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', loadOrders);
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (typeof checkAuth === 'function') await checkAuth();
+            loadOrders();
+        });
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        lucide.createIcons();
     </script>
 </body>
 </html>

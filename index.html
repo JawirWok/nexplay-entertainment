@@ -9,17 +9,22 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎮</text></svg>">
 </head>
 <body>
+    <!-- Top Promotional Banner -->
+    <div class="promo-banner" style="background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary)); color: white; text-align: center; padding: 10px; font-weight: 600; font-size: 0.9rem; z-index: 1000; position: relative;">
+        Spesial Hari Ini! Diskon hingga 50% untuk semua kategori Game & Film. Jangan sampai ketinggalan!
+    </div>
+
     <!-- Navbar -->
     <nav class="navbar" id="navbar">
         <a href="/" class="navbar-brand">
-            <div class="logo-icon">🎮</div>
+            <div class="logo-icon"><i data-lucide="gamepad-2"></i></div>
             <span>Nex<span class="text-gradient">Play</span></span>
         </a>
 
         <ul class="navbar-nav" id="navbar-nav">
-            <li><a href="/" class="nav-link active">🏠 Home</a></li>
-            <li><a href="#catalog" class="nav-link">🎯 Katalog</a></li>
-            <li><a href="#categories" class="nav-link">📂 Kategori</a></li>
+            <li><a href="/" class="nav-link active"><i data-lucide="home" style="width:16px;height:16px;margin-bottom:-2px"></i> Home</a></li>
+            <li><a href="#catalog" class="nav-link"><i data-lucide="target" style="width:16px;height:16px;margin-bottom:-2px"></i> Katalog</a></li>
+            <li><a href="#categories" class="nav-link"><i data-lucide="folder" style="width:16px;height:16px;margin-bottom:-2px"></i> Kategori</a></li>
         </ul>
 
         <button class="mobile-toggle" id="mobile-toggle">☰</button>
@@ -37,13 +42,13 @@
             <div class="container">
                 <div class="hero-content">
                     <div class="hero-badge">
-                        ✨ Platform #1 Digital Entertainment Indonesia
+                        <i data-lucide="sparkles" style="width:16px;height:16px"></i> Platform #1 Digital Entertainment Indonesia
                     </div>
                     <h1>Semua Hiburan Digital <span class="text-gradient">Dalam Genggaman</span></h1>
                     <p>Games, Film, Musik, eBook — semua yang kamu butuhkan untuk entertainment terbaik. Harga terjangkau, akses instant.</p>
                     <div class="hero-actions">
-                        <a href="#catalog" class="btn btn-primary btn-lg">🎯 Jelajahi Katalog</a>
-                        <a href="/register.html" class="btn btn-secondary btn-lg">🚀 Mulai Sekarang</a>
+                        <a href="#catalog" class="btn btn-primary btn-lg"><i data-lucide="target"></i> Jelajahi Katalog</a>
+                        <a href="/register.html" class="btn btn-secondary btn-lg"><i data-lucide="rocket"></i> Mulai Sekarang</a>
                     </div>
                 </div>
             </div>
@@ -62,22 +67,22 @@
 
                 <div class="featured-categories animate-in">
                     <div class="glass-card featured-category game" onclick="filterByCategory('game')">
-                        <div class="cat-icon">🎮</div>
+                        <div class="cat-icon"><i data-lucide="gamepad-2" style="width:32px;height:32px;margin:auto"></i></div>
                         <h4>Games</h4>
                         <p>PC, Console & Mobile</p>
                     </div>
                     <div class="glass-card featured-category film" onclick="filterByCategory('film')">
-                        <div class="cat-icon">🎬</div>
+                        <div class="cat-icon"><i data-lucide="clapperboard" style="width:32px;height:32px;margin:auto"></i></div>
                         <h4>Film & Series</h4>
                         <p>4K Digital Download</p>
                     </div>
                     <div class="glass-card featured-category music" onclick="filterByCategory('music')">
-                        <div class="cat-icon">🎵</div>
+                        <div class="cat-icon"><i data-lucide="music" style="width:32px;height:32px;margin:auto"></i></div>
                         <h4>Musik</h4>
                         <p>Streaming & Download</p>
                     </div>
                     <div class="glass-card featured-category ebook" onclick="filterByCategory('ebook')">
-                        <div class="cat-icon">📚</div>
+                        <div class="cat-icon"><i data-lucide="book" style="width:32px;height:32px;margin:auto"></i></div>
                         <h4>eBook</h4>
                         <p>PDF & EPUB</p>
                     </div>
@@ -89,7 +94,7 @@
         <section class="section" id="featured">
             <div class="container">
                 <div class="section-header animate-in">
-                    <h2>🔥 Produk <span class="text-gradient">Unggulan</span></h2>
+                    <h2><i data-lucide="flame" style="color:orange;display:inline-block;width:32px;height:32px"></i> Produk <span class="text-gradient">Unggulan</span></h2>
                     <p>Produk paling populer dan terlaris minggu ini</p>
                 </div>
 
@@ -210,7 +215,7 @@
                 if (data.products.length === 0) {
                     container.innerHTML = `
                         <div class="empty-state" style="grid-column:1/-1">
-                            <div class="empty-icon">🔍</div>
+                            <div class="empty-icon"><i data-lucide="search" style="width:48px;height:48px;margin:auto"></i></div>
                             <h3>Produk tidak ditemukan</h3>
                             <p>Coba kata kunci atau kategori lain</p>
                         </div>
@@ -267,6 +272,10 @@
             loadFeatured();
             loadProducts();
         });
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        lucide.createIcons();
     </script>
 </body>
 </html>

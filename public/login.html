@@ -11,11 +11,11 @@
 <body>
     <nav class="navbar">
         <a href="/" class="navbar-brand">
-            <div class="logo-icon">🎮</div>
+            <div class="logo-icon"><i data-lucide="gamepad-2"></i></div>
             <span>Nex<span class="text-gradient">Play</span></span>
         </a>
         <ul class="navbar-nav" id="navbar-nav">
-            <li><a href="/" class="nav-link">🏠 Home</a></li>
+            <li><a href="/" class="nav-link"><i data-lucide="home" style="width:16px;height:16px;margin-bottom:-2px"></i> Home</a></li>
         </ul>
         <button class="mobile-toggle" id="mobile-toggle">☰</button>
         <div class="nav-actions" id="nav-actions">
@@ -27,7 +27,7 @@
     <main class="main-content">
         <div class="auth-container">
             <div class="glass-card auth-card">
-                <h2>Welcome Back 👋</h2>
+                <h2>Welcome Back <i data-lucide="hand" style="color:var(--accent-primary);display:inline-block"></i></h2>
                 <p class="auth-subtitle">Login ke akun NexPlay kamu</p>
 
                 <form id="login-form">
@@ -40,7 +40,7 @@
                         <input type="password" id="password" class="form-control" placeholder="Masukkan password" required autocomplete="current-password">
                     </div>
                     <button type="submit" class="btn btn-primary btn-lg" style="width:100%" id="login-btn">
-                        🚀 Login
+                        <i data-lucide="log-in" style="width:18px;height:18px;display:inline-block;vertical-align:middle;margin-right:6px"></i> Login
                     </button>
                 </form>
 
@@ -50,9 +50,9 @@
 
                 <div style="margin-top:24px;padding:16px;background:var(--bg-tertiary);border:var(--border-light);border-radius:var(--radius-md)">
                     <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:8px;font-weight:600">Demo Accounts:</div>
-                    <div style="font-size:0.85rem;margin-bottom:4px">👑 Admin: <code style="color:#18181b;font-weight:700;background:#ffffff;padding:2px 6px;border-radius:4px;border:var(--border-light)">admin</code> / <code style="color:#18181b;font-weight:700;background:#ffffff;padding:2px 6px;border-radius:4px;border:var(--border-light)">admin123</code></div>
-                    <div style="font-size:0.85rem;margin-bottom:4px">🧑‍💼 Seller: <code style="color:#18181b;font-weight:700;background:#ffffff;padding:2px 6px;border-radius:4px;border:var(--border-light)">seller1</code> / <code style="color:#18181b;font-weight:700;background:#ffffff;padding:2px 6px;border-radius:4px;border:var(--border-light)">seller123</code></div>
-                    <div style="font-size:0.85rem">👤 User: <code style="color:#18181b;font-weight:700;background:#ffffff;padding:2px 6px;border-radius:4px;border:var(--border-light)">user1</code> / <code style="color:#18181b;font-weight:700;background:#ffffff;padding:2px 6px;border-radius:4px;border:var(--border-light)">user123</code></div>
+                    <div style="font-size:0.85rem;margin-bottom:4px"><i data-lucide="crown" style="width:14px;height:14px"></i> Admin: <code style="color:#18181b;font-weight:700;background:#ffffff;padding:2px 6px;border-radius:4px;border:var(--border-light)">admin</code> / <code style="color:#18181b;font-weight:700;background:#ffffff;padding:2px 6px;border-radius:4px;border:var(--border-light)">admin123</code></div>
+                    <div style="font-size:0.85rem;margin-bottom:4px"><i data-lucide="store" style="width:14px;height:14px"></i> Seller: <code style="color:#18181b;font-weight:700;background:#ffffff;padding:2px 6px;border-radius:4px;border:var(--border-light)">seller1</code> / <code style="color:#18181b;font-weight:700;background:#ffffff;padding:2px 6px;border-radius:4px;border:var(--border-light)">seller123</code></div>
+                    <div style="font-size:0.85rem"><i data-lucide="user" style="width:14px;height:14px"></i> User: <code style="color:#18181b;font-weight:700;background:#ffffff;padding:2px 6px;border-radius:4px;border:var(--border-light)">user1</code> / <code style="color:#18181b;font-weight:700;background:#ffffff;padding:2px 6px;border-radius:4px;border:var(--border-light)">user123</code></div>
                 </div>
             </div>
         </div>
@@ -89,9 +89,14 @@
             } catch (err) {
                 showToast(err.message, 'error');
                 btn.disabled = false;
-                btn.textContent = '🚀 Login';
+                btn.innerHTML = '<i data-lucide="log-in" style="width:18px;height:18px;display:inline-block;vertical-align:middle;margin-right:6px"></i> Login';
+                lucide.createIcons();
             }
         });
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        lucide.createIcons();
     </script>
 </body>
 </html>

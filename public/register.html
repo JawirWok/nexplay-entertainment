@@ -11,11 +11,11 @@
 <body>
     <nav class="navbar">
         <a href="/" class="navbar-brand">
-            <div class="logo-icon">🎮</div>
+            <div class="logo-icon"><i data-lucide="gamepad-2"></i></div>
             <span>Nex<span class="text-gradient">Play</span></span>
         </a>
         <ul class="navbar-nav" id="navbar-nav">
-            <li><a href="/" class="nav-link">🏠 Home</a></li>
+            <li><a href="/" class="nav-link"><i data-lucide="home" style="width:16px;height:16px;margin-bottom:-2px"></i> Home</a></li>
         </ul>
         <button class="mobile-toggle" id="mobile-toggle">☰</button>
         <div class="nav-actions" id="nav-actions">
@@ -27,7 +27,7 @@
     <main class="main-content">
         <div class="auth-container">
             <div class="glass-card auth-card">
-                <h2>Buat Akun Baru 🎮</h2>
+                <h2>Buat Akun Baru <i data-lucide="gamepad-2" style="display:inline-block;vertical-align:middle;color:var(--accent-primary)"></i></h2>
                 <p class="auth-subtitle">Daftar dan mulai belanja digital entertainment</p>
 
                 <form id="register-form">
@@ -59,7 +59,7 @@
                         </div>
                     </div>
                     <button type="submit" class="btn btn-primary btn-lg" style="width:100%" id="register-btn">
-                        🚀 Daftar Sekarang
+                        <i data-lucide="user-plus" style="display:inline-block;width:18px;height:18px;vertical-align:middle;margin-right:6px"></i> Daftar Sekarang
                     </button>
                 </form>
 
@@ -85,7 +85,8 @@
 
             const btn = document.getElementById('register-btn');
             btn.disabled = true;
-            btn.textContent = 'Loading...';
+            btn.innerHTML = '<i data-lucide="loader" class="animate-spin" style="width:18px;height:18px;display:inline-block;vertical-align:middle;margin-right:6px"></i> Loading...';
+            lucide.createIcons();
 
             try {
                 const role = document.querySelector('input[name="role"]:checked').value;
@@ -97,15 +98,21 @@
                 });
 
                 showToast('Registrasi berhasil! 🎉', 'success');
+                if (typeof CartStore !== 'undefined') CartStore.clear(); // Clear guest cart
                 setTimeout(() => {
-                    window.location.href = '/';
-                }, 800);
+                    window.location.href = '/login.html';
+                }, 1500);
             } catch (err) {
                 showToast(err.message, 'error');
                 btn.disabled = false;
-                btn.textContent = '🚀 Daftar Sekarang';
+                btn.innerHTML = '<i data-lucide="user-plus" style="display:inline-block;width:18px;height:18px;vertical-align:middle;margin-right:6px"></i> Daftar Sekarang';
+                lucide.createIcons();
             }
         });
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        lucide.createIcons();
     </script>
 </body>
 </html>
