@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Admin NexPlay - Laporan pendapatan dan omset terperinci.">
+    <title>Laporan Omset & Pendapatan — Admin NexPlay</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎮</text></svg>">
+    <style>
+        @media print {
+            .navbar, .admin-sidebar, .no-print { display: none !important; }
+            .admin-layout { display: block !important; padding: 0 !important; }
+            .admin-content { padding: 0 !important; width: 100% !important; }
+            .glass-card { border: 1px solid #ddd !important; box-shadow: none !important; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">
+            <div class="logo-icon">🎮</div>
+            <span>Nex<span class="text-gradient">Play</span></span>
+        </a>
+        <ul class="navbar-nav" id="navbar-nav"><li><a href="/" class="nav-link">🏠 Store</a></li></ul>
+        <button class="mobile-toggle" id="mobile-toggle">☰</button>
+        <div class="nav-actions" id="nav-actions"></div>
+    </nav>
+
+    <main class="main-content">
+        <div class="admin-layout">
+            <aside class="admin-sidebar">
+                <div class="sidebar-title">Dashboard</div>
+                <ul class="sidebar-nav">
+                    <li><a href="/admin/dashboard.html" class="sidebar-link">📊 Overview</a></li>
+                    <li><a href="/admin/products.html" class="sidebar-link">📦 Produk</a></li>
+                    <li><a href="/admin/orders.html" class="sidebar-link">🧾 Transaksi</a></li>
+                    <li><a href="/admin/vouchers.html" class="sidebar-link">🎟️ Voucher Diskon</a></li>
+                    <li><a href="/admin/revenue.html" class="sidebar-link active">💰 Laporan Omset</a></li>
+                    <li><a href="/admin/users.html" class="sidebar-link">👥 Users</a></li>
+                </ul>
+                <div class="sidebar-title">Quick Links</div>
+                <ul class="sidebar-nav">
+                    <li><a href="/" class="sidebar-link">🏪 Lihat Store</a></li>
+                    <li><a href="#" class="sidebar-link" onclick="logout()">🚪 Logout</a></li>
+                </ul>
+            </aside>
+
+            <div class="admin-content">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:16px">
+                    <div>
+                        <h2 style="margin-bottom:4px">💰 Laporan <span class="text-gradient">Omset & Pendapatan</span></h2>
+                        <p style="color:var(--text-secondary)">Rincian pendapatan platform, komisi seller, dan potongan diskon</p>
+                    </div>
+                    <div class="no-print" style="display:flex;gap:12px;align-items:center">
+                        <button class="btn btn-secondary btn-sm" onclick="window.print()">
+                            🖨️ Cetak Laporan
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Timeframe Filter Buttons -->
+                <div class="no-print glass-card" style="padding:14px 20px;margin-bottom:24px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+                    <span style="font-weight:600;font-size:0.9rem;color:var(--text-secondary)">Filter Waktu:</span>
+                    <button class="btn btn-secondary btn-sm filter-btn active" data-range="all" onclick="setFilter('all', this)">Semua Waktu</button>
+                    <button class="btn btn-secondary btn-sm filter-btn" data-range="today" onclick="setFilter('today', this)">Hari Ini</button>
+                    <button class="btn btn-secondary btn-sm filter-btn" data-range="week" onclick="setFilter('week', this)">7 Hari Terakhir</button>
+                    <button class="btn btn-secondary btn-sm filter-btn" data-range="month" onclick="setFilter('month', this)">Bulan Ini</button>
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="stats-grid" style="margin-bottom:28px">
+                    <div class="glass-card stat-card cyan">
+                        <div class="stat-icon">📈</div>
+                        <div class="stat-value" id="summary-gross">-</div>
+                        <div class="stat-label">Total Omset Kotor</div>
+                    </div>
+                    <div class="glass-card stat-card green">
+                        <div class="stat-icon">👑</div>
+                        <div class="stat-value" id="summary-admin" style="color:var(--accent-green)">-</div>
+                        <div class="stat-label">Komisi Admin (20%)</div>
+                    </div>
+                    <div class="glass-card stat-card purple">
+                        <div class="stat-icon">🧑‍💼</div>
+                        <div class="stat-value" id="summary-seller">-</div>
+                        <div class="stat-label">Hak Penjual / Seller (80%)</div>
+                    </div>
+                    <div class="glass-card stat-card orange">
+                        <div class="stat-icon">🎟️</div>
+                        <div class="stat-value" id="summary-voucher">-</div>
+                        <div class="stat-label">Total Diskon Voucher</div>
+                    </div>
+                </div>
+
+                <!-- Transaction Details Table -->
+                <div class="glass-card" style="padding:0;overflow-x:auto">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Order Code</th>
+                                <th>Tanggal</th>
+                                <th>Pembeli</th>
+                                <th>Produk & Penjual</th>
+                                <th style="text-align:center">Qty</th>
+                                <th style="text-align:right">Harga Item</th>
+                                <th style="text-align:right">Komisi Admin (20%)</th>
+                                <th style="text-align:right">Hak Seller (80%)</th>
+                                <th style="text-align:center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="revenue-tbody">
+                            <tr><td colspan="9" style="text-align:center;padding:32px"><div class="loading-spinner"></div></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="/js/app.js"></script>
+    <script>
+        let currentRange = 'all';
+
+        function setFilter(range, btn) {
+            currentRange = range;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active', 'btn-primary'));
+            btn.classList.add('active');
+            loadRevenueData();
+        }
+
+        async function loadRevenueData() {
+            try {
+                const data = await API.get(`/api/orders/revenue/detailed?range=${currentRange}`);
+                const s = data.summary || { gross: 0, admin: 0, seller: 0, voucher: 0 };
+
+                document.getElementById('summary-gross').textContent = formatRupiah(s.gross);
+                document.getElementById('summary-admin').textContent = formatRupiah(s.admin);
+                document.getElementById('summary-seller').textContent = formatRupiah(s.seller);
+                document.getElementById('summary-voucher').textContent = formatRupiah(s.voucher);
+
+                renderTransactions(data.transactions || []);
+            } catch (err) {
+                if (err.message.includes('Unauthorized') || err.message.includes('Forbidden')) {
+                    window.location.href = '/login.html';
+                    return;
+                }
+                showToast(err.message, 'error');
+            }
+        }
+
+        function renderTransactions(transactions) {
+            const tbody = document.getElementById('revenue-tbody');
+
+            if (transactions.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--text-muted)">Tidak ada data transaksi pada rentang waktu ini.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = transactions.map(t => `
+                <tr>
+                    <td>
+                        <span style="font-weight:700;color:var(--text-primary);font-size:0.85rem">${t.order_code}</span>
+                        ${t.voucher_code ? `<span style="display:block;font-size:0.75rem;color:var(--accent-green)">🎟️ ${t.voucher_code} (-${formatRupiah(t.voucher_discount)})</span>` : ''}
+                    </td>
+                    <td style="font-size:0.85rem;color:var(--text-muted)">
+                        ${new Date(t.created_at).toLocaleDateString('id-ID')}
+                        <small style="display:block">${new Date(t.created_at).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'})}</small>
+                    </td>
+                    <td><span style="font-weight:600">${t.buyer_name}</span></td>
+                    <td>
+                        <span style="font-weight:600;color:var(--text-primary)">${t.product_name}</span>
+                        <span style="display:block;font-size:0.75rem;color:var(--text-muted)">Penjual: <strong>${t.seller_name}</strong></span>
+                    </td>
+                    <td style="text-align:center;font-weight:600">${t.quantity}</td>
+                    <td style="text-align:right;font-weight:600">${formatRupiah(t.price * t.quantity)}</td>
+                    <td style="text-align:right;font-weight:700;color:var(--accent-green)">${formatRupiah(t.admin_commission || 0)}</td>
+                    <td style="text-align:right;font-weight:600;color:var(--accent-purple)">${formatRupiah(t.seller_commission || 0)}</td>
+                    <td style="text-align:center">
+                        <span class="order-status status-success">Selesai</span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        document.addEventListener('DOMContentLoaded', loadRevenueData);
+    </script>
+</body>
+</html>

@@ -27,6 +27,8 @@
                     <li><a href="/admin/dashboard.html" class="sidebar-link">📊 Overview</a></li>
                     <li><a href="/admin/products.html" class="sidebar-link">📦 Produk</a></li>
                     <li><a href="/admin/orders.html" class="sidebar-link active">🧾 Transaksi</a></li>
+                    <li><a href="/admin/vouchers.html" class="sidebar-link">🎟️ Voucher Diskon</a></li>
+                    <li><a href="/admin/revenue.html" class="sidebar-link">💰 Laporan Omset</a></li>
                     <li><a href="/admin/users.html" class="sidebar-link">👥 Users</a></li>
                 </ul>
                 <div class="sidebar-title">Quick Links</div>
@@ -38,7 +40,7 @@
 
             <div class="admin-content">
                 <h2 style="margin-bottom:8px">🧾 Kelola <span class="text-gradient">Transaksi</span></h2>
-                <p style="color:var(--text-secondary);margin-bottom:32px">Monitor dan update status pesanan</p>
+                <p style="color:var(--text-secondary);margin-bottom:32px">Pantau verifikasi pesanan, pengiriman seller, dan selesaikan transaksi</p>
 
                 <div class="glass-card" style="padding:0;overflow-x:auto">
                     <table class="data-table">
@@ -46,12 +48,12 @@
                             <tr>
                                 <th>Order Code</th>
                                 <th>User</th>
-                                <th>Items</th>
-                                <th>Total</th>
+                                <th>Item & Status Seller</th>
+                                <th>Total Bayar</th>
                                 <th>Metode</th>
-                                <th>Status</th>
+                                <th>Status Pesanan</th>
                                 <th>Tanggal</th>
-                                <th>Aksi</th>
+                                <th style="text-align:right">Aksi Admin</th>
                             </tr>
                         </thead>
                         <tbody id="orders-tbody">
@@ -86,27 +88,62 @@
                 return;
             }
 
-            tbody.innerHTML = orders.map(o => `
-                <tr>
-                    <td><span style="font-weight:700;color:var(--text-primary);font-family:var(--font-heading);font-size:0.85rem">${o.order_code}</span></td>
-                    <td>${o.username || 'User #' + o.user_id}</td>
-                    <td>${(o.items || []).length} item</td>
-                    <td style="font-weight:600">${formatRupiah(o.total_amount)}</td>
-                    <td>${o.payment_method || '-'}</td>
-                    <td><span class="order-status status-${o.payment_status}">${o.payment_status}</span></td>
-                    <td style="font-size:0.85rem;color:var(--text-muted)">${new Date(o.created_at).toLocaleDateString('id-ID')}</td>
-                    <td>
-                        <select class="form-control" style="width:auto;min-width:130px;font-size:0.8rem;padding:6px 10px"
-                                onchange="updateStatus(${o.id}, this.value)" ${o.payment_status === 'success' ? '' : ''}>
-                            <option value="pending" ${o.payment_status === 'pending' ? 'selected' : ''}>⏳ Pending</option>
-                            <option value="processing" ${o.payment_status === 'processing' ? 'selected' : ''}>🔄 Processing</option>
-                            <option value="success" ${o.payment_status === 'success' ? 'selected' : ''}>✅ Success</option>
-                            <option value="failed" ${o.payment_status === 'failed' ? 'selected' : ''}>❌ Failed</option>
-                            <option value="refunded" ${o.payment_status === 'refunded' ? 'selected' : ''}>↩️ Refunded</option>
-                        </select>
-                    </td>
-                </tr>
-            `).join('');
+            tbody.innerHTML = orders.map(o => {
+                const items = o.items || [];
+                const hasSellerItems = items.some(i => i.seller_id && i.seller_id > 1);
+                const sellerShipped = items.filter(i => i.seller_id && i.seller_id > 1).every(i => i.fulfillment_status === 'dikirim_ke_admin');
+
+                let fulfillmentBadge = '';
+                if (!hasSellerItems) {
+                    fulfillmentBadge = '<span style="font-size:0.72rem;background:var(--bg-tertiary);padding:2px 6px;border-radius:4px;color:var(--text-secondary)">📦 Platform Direct</span>';
+                } else if (sellerShipped) {
+                    fulfillmentBadge = '<span style="font-size:0.72rem;background:#00b894;color:#fff;padding:2px 6px;border-radius:4px">🟢 Seller Sudah Kirim</span>';
+                } else {
+                    fulfillmentBadge = '<span style="font-size:0.72rem;background:#fdcb6e;color:#000;padding:2px 6px;border-radius:4px">⏳ Menunggu Kiriman Seller</span>';
+                }
+
+                return `
+                    <tr>
+                        <td>
+                            <span style="font-weight:700;color:var(--text-primary);font-family:var(--font-heading);font-size:0.85rem">${o.order_code}</span>
+                            ${o.voucher_code ? `<span style="display:block;font-size:0.75rem;color:var(--accent-green)">🎟️ ${o.voucher_code}</span>` : ''}
+                        </td>
+                        <td>${o.username || 'User #' + o.user_id}</td>
+                        <td>
+                            <div style="font-weight:600">${items.length} item</div>
+                            <div style="margin-top:2px">${fulfillmentBadge}</div>
+                        </td>
+                        <td style="font-weight:600">
+                            ${formatRupiah(o.total_amount)}
+                            ${o.voucher_discount > 0 ? `<small style="display:block;color:var(--accent-green);font-size:0.75rem">Hemat: ${formatRupiah(o.voucher_discount)}</small>` : ''}
+                        </td>
+                        <td>${o.payment_method || '-'}</td>
+                        <td>
+                            <span class="order-status status-${o.payment_status}">
+                                ${o.payment_status === 'processing' ? '🔄 Processing' : o.payment_status}
+                            </span>
+                        </td>
+                        <td style="font-size:0.85rem;color:var(--text-muted)">${new Date(o.created_at).toLocaleDateString('id-ID')}</td>
+                        <td style="text-align:right">
+                            <div style="display:flex;gap:6px;justify-content:flex-end;align-items:center">
+                                ${o.payment_status === 'processing' ? `
+                                    <button class="btn btn-primary btn-sm" onclick="updateStatus(${o.id}, 'success')" style="padding:4px 10px;font-size:0.8rem;white-space:nowrap">
+                                        ✅ Selesaikan
+                                    </button>
+                                ` : ''}
+                                <select class="form-control" style="width:auto;min-width:115px;font-size:0.8rem;padding:4px 8px"
+                                        onchange="updateStatus(${o.id}, this.value)">
+                                    <option value="pending" ${o.payment_status === 'pending' ? 'selected' : ''}>⏳ Pending</option>
+                                    <option value="processing" ${o.payment_status === 'processing' ? 'selected' : ''}>🔄 Processing</option>
+                                    <option value="success" ${o.payment_status === 'success' ? 'selected' : ''}>✅ Success</option>
+                                    <option value="failed" ${o.payment_status === 'failed' ? 'selected' : ''}>❌ Failed</option>
+                                    <option value="refunded" ${o.payment_status === 'refunded' ? 'selected' : ''}>↩️ Refunded</option>
+                                </select>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
         }
 
         async function updateStatus(orderId, status) {

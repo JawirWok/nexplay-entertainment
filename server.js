@@ -114,6 +114,7 @@ const cartRoutes = require('./routes/cart');
 const orderRoutes = require('./routes/orders');
 const paymentRoutes = require('./routes/payment');
 const userRoutes = require('./routes/users');
+const voucherRoutes = require('./routes/vouchers');
 
 app.use(['/api/auth', '/auth'], authRoutes);
 app.use(['/api/products', '/products'], productRoutes);
@@ -121,6 +122,7 @@ app.use(['/api/cart', '/cart'], cartRoutes);
 app.use(['/api/orders', '/orders'], orderRoutes);
 app.use(['/api/payment', '/payment'], paymentRoutes);
 app.use(['/api/users', '/users'], userRoutes);
+app.use(['/api/vouchers', '/vouchers'], voucherRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {
@@ -135,12 +137,12 @@ if (require.main === module && !process.env.VERCEL) {
         console.log('  ╔══════════════════════════════════════╗');
         console.log('  ║                                      ║');
         console.log('  ║   🎮  NexPlay is running!            ║');
-        console.log(`  ║   🌐  http://localhost:${PORT}            ║`);
+        console.log(`  ║   🌐  http://localhost:${PORT}       ║`);
         console.log('  ║                                      ║');
         console.log('  ║   Demo Accounts:                     ║');
-        console.log('  ║   👑 Admin: admin / admin123          ║');
-        console.log('  ║   👤 User:  user1 / user123           ║');
-        console.log('  ║                                      ║');
+        console.log('  ║   👑 Admin: admin / admin123         ║');
+        console.log('  ║   👤 User:  user1 / user123          ║');
+        console.log('  ║   🧑‍💼 Seller: seller1 / seller123     ║');
         console.log('  ╚══════════════════════════════════════╝');
         console.log('');
     });

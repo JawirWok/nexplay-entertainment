@@ -39,12 +39,15 @@
     <script>
         let cartItems = [];
         let cartTotal = 0;
+        let selectedItemIds = new Set();
 
         async function loadCart() {
             try {
                 const data = await API.get('/api/cart');
                 cartItems = data.items;
-                cartTotal = data.total;
+                // auto-select all items initially
+                cartItems.forEach(item => selectedItemIds.add(item.id));
+                updateTotal();
                 renderCart();
             } catch (err) {
                 if (err.message.includes('Unauthorized') || err.message.includes('login')) {
@@ -77,6 +80,9 @@
 
             const itemsHtml = cartItems.map(item => `
                 <div class="glass-card cart-item" data-cart-id="${item.id}">
+                    <div style="display:flex;align-items:center;padding:0 15px;">
+                        <input type="checkbox" class="item-checkbox" data-id="${item.id}" ${selectedItemIds.has(item.id) ? 'checked' : ''} onchange="toggleItem(${item.id})" style="transform:scale(1.5);cursor:pointer;">
+                    </div>
                     <div class="item-image">
                         ${item.image_url ? `<img src="${item.image_url}" alt="${item.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : ''}
                         <div class="placeholder-img" style="${item.image_url ? 'display:none;' : ''}font-size:1.5rem">${getCategoryIcon(item.category)}</div>
@@ -90,7 +96,10 @@
                         <span class="qty-value">${item.quantity}</span>
                         <button class="qty-btn" onclick="updateQty(${item.id}, ${item.quantity + 1})">+</button>
                     </div>
-                    <div class="item-price">${formatRupiah(item.price * item.quantity)}</div>
+                    <div class="item-price">
+                        ${item.discount_percentage > 0 ? `<div style="font-size:0.8rem;text-decoration:line-through;color:var(--text-muted)">${formatRupiah(item.price * item.quantity)}</div>` : ''}
+                        ${formatRupiah((item.actual_price || item.price) * item.quantity)}
+                    </div>
                     <button class="item-remove" onclick="removeItem(${item.id})" title="Hapus">🗑️</button>
                 </div>
             `).join('');
@@ -148,7 +157,26 @@
             }
         }
 
+        function updateTotal() {
+            cartTotal = cartItems.filter(item => selectedItemIds.has(item.id)).reduce((sum, item) => sum + ((item.actual_price || item.price) * item.quantity), 0);
+        }
+
+        function toggleItem(cartId) {
+            if (selectedItemIds.has(cartId)) {
+                selectedItemIds.delete(cartId);
+            } else {
+                selectedItemIds.add(cartId);
+            }
+            updateTotal();
+            renderCart();
+        }
+
         function proceedCheckout() {
+            if (selectedItemIds.size === 0) {
+                showToast('Pilih minimal satu item untuk checkout', 'warning');
+                return;
+            }
+            sessionStorage.setItem('nexplay_checkout_items', JSON.stringify(Array.from(selectedItemIds)));
             window.location.href = '/checkout.html';
         }
 

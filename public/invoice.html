@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice — NexPlay</title>
+    <style>
+        body { font-family: 'Inter', sans-serif; color: #333; margin: 0; padding: 40px; }
+        .invoice-container { max-width: 800px; margin: 0 auto; border: 1px solid #eee; padding: 40px; }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; border-bottom: 2px solid #f0f0f0; padding-bottom: 20px; }
+        .brand h1 { margin: 0; color: #6366f1; font-size: 28px; }
+        .brand p { margin: 4px 0 0; color: #888; font-size: 14px; }
+        .invoice-details { text-align: right; }
+        .invoice-details h2 { margin: 0; font-size: 24px; color: #333; }
+        .invoice-details p { margin: 4px 0 0; color: #555; font-size: 14px; }
+        .status-badge { display: inline-block; padding: 4px 12px; border-radius: 4px; font-weight: bold; font-size: 12px; margin-top: 8px; }
+        .status-success { background: #e0f2fe; color: #0284c7; }
+        .customer-info { margin-bottom: 30px; }
+        .customer-info h3 { margin: 0 0 8px; font-size: 16px; color: #666; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #f9fafb; font-weight: 600; color: #444; }
+        .text-right { text-align: right; }
+        .total-row { font-weight: bold; font-size: 18px; }
+        .footer { text-align: center; color: #888; font-size: 12px; margin-top: 50px; border-top: 1px solid #eee; padding-top: 20px; }
+        @media print {
+            body { padding: 0; }
+            .invoice-container { border: none; padding: 0; }
+            .no-print { display: none; }
+        }
+        .btn-print { background: #6366f1; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; margin-bottom: 20px; display: inline-block; }
+    </style>
+</head>
+<body>
+    <div class="invoice-container">
+        <button class="btn-print no-print" onclick="window.print()">🖨️ Cetak / Simpan PDF</button>
+        
+        <div class="header">
+            <div class="brand">
+                <h1>🎮 NexPlay</h1>
+                <p>Digital Entertainment Platform</p>
+                <p>Jl. Teknologi No. 99, Jakarta</p>
+            </div>
+            <div class="invoice-details">
+                <h2>INVOICE</h2>
+                <p>No: <strong id="inv-no">-</strong></p>
+                <p>Tanggal: <span id="inv-date">-</span></p>
+                <div class="status-badge status-success" id="inv-status">SUCCESS</div>
+            </div>
+        </div>
+
+        <div class="customer-info">
+            <h3>Ditagihkan Kepada:</h3>
+            <p><strong><span id="inv-user">-</span></strong></p>
+            <p>Metode Pembayaran: <span id="inv-method">-</span></p>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Deskripsi Produk</th>
+                    <th>Kategori</th>
+                    <th class="text-right">Qty</th>
+                    <th class="text-right">Harga</th>
+                    <th class="text-right">Subtotal</th>
+                </tr>
+            </thead>
+            <tbody id="inv-items">
+                <!-- Items here -->
+            </tbody>
+            <tfoot>
+                <tr class="total-row">
+                    <td colspan="4" class="text-right">Total</td>
+                    <td class="text-right" id="inv-total">-</td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <div class="footer">
+            <p>Terima kasih telah berbelanja di NexPlay!</p>
+            <p>Ini adalah dokumen elektronik yang sah dan tidak memerlukan tanda tangan.</p>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script>
+        async function loadInvoice() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const orderId = urlParams.get('id');
+            if (!orderId) {
+                alert('ID Pesanan tidak valid');
+                return;
+            }
+
+            try {
+                const data = await API.get(`/api/orders/${orderId}`);
+                const order = data.order;
+
+                document.getElementById('inv-no').textContent = order.order_code;
+                document.getElementById('inv-date').textContent = new Date(order.created_at).toLocaleString('id-ID');
+                document.getElementById('inv-user').textContent = 'User #' + order.user_id; // Idealy username, but ok
+                document.getElementById('inv-method').textContent = (order.payment_method || '').toUpperCase();
+                
+                document.getElementById('inv-status').textContent = order.payment_status.toUpperCase();
+                if (order.payment_status !== 'success') {
+                    document.getElementById('inv-status').style.background = '#fee2e2';
+                    document.getElementById('inv-status').style.color = '#ef4444';
+                }
+
+                document.getElementById('inv-total').textContent = formatRupiah(order.total_amount);
+
+                let itemsHtml = (order.items || []).map(item => `
+                    <tr>
+                        <td><strong>${item.name}</strong></td>
+                        <td style="text-transform: capitalize">${item.category}</td>
+                        <td class="text-right">${item.quantity}</td>
+                        <td class="text-right">${formatRupiah(item.price)}</td>
+                        <td class="text-right">${formatRupiah(item.price * item.quantity)}</td>
+                    </tr>
+                `).join('');
+
+                if (order.voucher_discount > 0) {
+                    itemsHtml += `
+                        <tr style="background:#f0fdf4">
+                            <td colspan="4" class="text-right" style="color:#059669"><strong>🎟️ Diskon Voucher (${order.voucher_code || 'PROMO'}):</strong></td>
+                            <td class="text-right" style="color:#059669;font-weight:700">-${formatRupiah(order.voucher_discount)}</td>
+                        </tr>
+                    `;
+                }
+
+                document.getElementById('inv-items').innerHTML = itemsHtml;
+
+                // Auto print after a short delay
+                setTimeout(() => {
+                    window.print();
+                }, 500);
+
+            } catch (err) {
+                alert('Gagal memuat invoice: ' + err.message);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadInvoice);
+    </script>
+</body>
+</html>

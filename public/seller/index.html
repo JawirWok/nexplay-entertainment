@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Seller Dashboard NexPlay - Manajemen produk dan statistik penjual.">
+    <title>Seller Dashboard — NexPlay</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎮</text></svg>">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">
+            <div class="logo-icon">🎮</div>
+            <span>Nex<span class="text-gradient">Play</span></span>
+        </a>
+        <ul class="navbar-nav" id="navbar-nav">
+            <li><a href="/" class="nav-link">🏠 Store</a></li>
+        </ul>
+        <button class="mobile-toggle" id="mobile-toggle">☰</button>
+        <div class="nav-actions" id="nav-actions"></div>
+    </nav>
+
+    <main class="main-content">
+        <div class="admin-layout">
+            <aside class="admin-sidebar">
+                <div class="sidebar-title">Seller Dashboard</div>
+                <ul class="sidebar-nav">
+                    <li><a href="/seller/index.html" class="sidebar-link active">📊 Overview</a></li>
+                    <li><a href="/seller/products.html" class="sidebar-link">📦 Produk Saya</a></li>
+                    <li><a href="/seller/orders.html" class="sidebar-link">🧾 Pesanan Masuk</a></li>
+                </ul>
+                <div class="sidebar-title">Quick Links</div>
+                <ul class="sidebar-nav">
+                    <li><a href="/" class="sidebar-link">🏪 Lihat Store</a></li>
+                    <li><a href="#" class="sidebar-link" onclick="logout()">🚪 Logout</a></li>
+                </ul>
+            </aside>
+
+            <div class="admin-content">
+                <h2 style="margin-bottom:8px">🛍️ Seller <span class="text-gradient">Overview</span></h2>
+                <p style="color:var(--text-secondary);margin-bottom:32px">Pantau performa penjualan dan pendapatan komisi produk Anda</p>
+
+                <div class="stats-grid" id="stats-grid">
+                    <div class="glass-card stat-card green">
+                        <div class="stat-icon">💰</div>
+                        <div class="stat-value" id="stat-commission">-</div>
+                        <div class="stat-label">Total Komisi (80%)</div>
+                    </div>
+                    <div class="glass-card stat-card cyan">
+                        <div class="stat-icon">📦</div>
+                        <div class="stat-value" id="stat-sold-items">-</div>
+                        <div class="stat-label">Total Item Terjual</div>
+                    </div>
+                    <div class="glass-card stat-card purple">
+                        <div class="stat-icon">📅</div>
+                        <div class="stat-value" id="stat-daily" style="font-size:1.35rem">-</div>
+                        <div class="stat-label">Komisi Hari Ini</div>
+                    </div>
+                    <div class="glass-card stat-card orange">
+                        <div class="stat-icon">📈</div>
+                        <div class="stat-value" id="stat-weekly" style="font-size:1.35rem">-</div>
+                        <div class="stat-label">Komisi Minggu Ini (7 Hari)</div>
+                    </div>
+                </div>
+
+                <div class="glass-card" style="padding:24px;margin-top:24px">
+                    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px">
+                        <h3 style="margin:0">📅 Rangkuman Omset Seller</h3>
+                        <a href="/seller/orders.html" class="btn btn-secondary btn-sm">Lihat Semua Pesanan Masuk →</a>
+                    </div>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:20px;padding:16px;background:var(--bg-tertiary);border-radius:var(--radius-md);border:var(--border-light)">
+                        <div>
+                            <div style="font-size:0.85rem;color:var(--text-muted)">Komisi Bulan Ini</div>
+                            <div id="stat-monthly" style="font-size:1.4rem;font-weight:700;color:var(--accent-green)">-</div>
+                        </div>
+                        <div>
+                            <div style="font-size:0.85rem;color:var(--text-muted)">Persentase Bagi Hasil</div>
+                            <div style="font-size:1.4rem;font-weight:700;color:var(--accent-cyan)">80% Seller / 20% Admin</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card" style="padding:24px;margin-top:24px">
+                    <h3 style="margin-bottom:20px">📈 Produk Terjual</h3>
+                    <div id="sold-products">
+                        <div class="page-loading"><div class="loading-spinner"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="/js/app.js"></script>
+    <script>
+        async function loadDashboard() {
+            try {
+                // Load stats
+                const statsData = await API.get('/api/orders/seller/stats');
+                const s = statsData.stats;
+
+                document.getElementById('stat-commission').textContent = formatRupiah(s.total_commission);
+                document.getElementById('stat-sold-items').textContent = s.sold_items;
+                document.getElementById('stat-daily').textContent = formatRupiah(s.daily_commission);
+                document.getElementById('stat-weekly').textContent = formatRupiah(s.weekly_commission);
+                document.getElementById('stat-monthly').textContent = formatRupiah(s.monthly_commission);
+
+                // Load sold products
+                const soldProducts = s.sold_products || [];
+
+                if (soldProducts.length === 0) {
+                    document.getElementById('sold-products').innerHTML = `
+                        <div style="text-align:center;padding:32px;color:var(--text-muted)">
+                            <div style="font-size:2rem;margin-bottom:8px">📦</div>
+                            <p>Belum ada produk yang terjual.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                document.getElementById('sold-products').innerHTML = `
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Nama Produk</th>
+                                <th style="text-align:center">Qty Terjual</th>
+                                <th style="text-align:right">Total Komisi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${soldProducts.map(p => `
+                                <tr>
+                                    <td><span style="font-weight:600;color:var(--text-primary)">${p.name}</span></td>
+                                    <td style="text-align:center">${p.qty}</td>
+                                    <td style="text-align:right;font-weight:600;color:var(--accent-green)">${formatRupiah(p.revenue)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } catch (err) {
+                if (err.message.includes('Unauthorized') || err.message.includes('Forbidden') || err.message.includes('Seller access required')) {
+                    window.location.href = '/login.html';
+                    return;
+                }
+                showToast(err.message, 'error');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadDashboard);
+    </script>
+</body>
+</html>

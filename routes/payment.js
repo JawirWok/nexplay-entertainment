@@ -10,70 +10,70 @@ router.get('/methods', (req, res) => {
             id: 'gopay',
             name: 'GoPay',
             type: 'e-wallet',
-            icon: '💚',
+            icon: 'https://upload.wikimedia.org/wikipedia/commons/a/a0/GoPay_logo.svg',
             description: 'Bayar dengan saldo GoPay'
         },
         {
             id: 'ovo',
             name: 'OVO',
             type: 'e-wallet',
-            icon: '💜',
+            icon: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/OVO_logo.svg/1200px-OVO_logo.svg.png',
             description: 'Bayar dengan saldo OVO'
         },
         {
             id: 'dana',
             name: 'DANA',
             type: 'e-wallet',
-            icon: '💙',
+            icon: 'https://upload.wikimedia.org/wikipedia/commons/7/72/Logo_dana_blue.svg',
             description: 'Bayar dengan saldo DANA'
         },
         {
             id: 'shopeepay',
             name: 'ShopeePay',
             type: 'e-wallet',
-            icon: '🧡',
+            icon: 'https://upload.wikimedia.org/wikipedia/commons/f/fe/Shopee.svg',
             description: 'Bayar dengan ShopeePay'
         },
         {
             id: 'bca_va',
             name: 'BCA Virtual Account',
             type: 'bank_transfer',
-            icon: '🏦',
+            icon: 'https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg',
             description: 'Transfer via BCA Virtual Account'
         },
         {
             id: 'bni_va',
             name: 'BNI Virtual Account',
             type: 'bank_transfer',
-            icon: '🏦',
+            icon: 'https://upload.wikimedia.org/wikipedia/id/5/55/BNI_logo.svg',
             description: 'Transfer via BNI Virtual Account'
         },
         {
             id: 'mandiri_va',
             name: 'Mandiri Virtual Account',
             type: 'bank_transfer',
-            icon: '🏦',
+            icon: 'https://upload.wikimedia.org/wikipedia/commons/a/ad/Bank_Mandiri_logo_2016.svg',
             description: 'Transfer via Mandiri Virtual Account'
         },
         {
             id: 'bri_va',
             name: 'BRI Virtual Account',
             type: 'bank_transfer',
-            icon: '🏦',
+            icon: 'https://upload.wikimedia.org/wikipedia/commons/2/2e/BRI_2020.svg',
             description: 'Transfer via BRI Virtual Account'
         },
         {
             id: 'credit_card',
             name: 'Credit Card',
             type: 'card',
-            icon: '💳',
+            icon: 'https://upload.wikimedia.org/wikipedia/commons/0/04/Mastercard-logo.png',
             description: 'Visa, Mastercard, JCB'
         },
         {
             id: 'qris',
             name: 'QRIS',
             type: 'qris',
-            icon: '📱',
+            icon: 'https://upload.wikimedia.org/wikipedia/commons/a/a2/Logo_QRIS.svg',
             description: 'Scan QR untuk bayar dari e-wallet manapun'
         }
     ];
@@ -137,14 +137,14 @@ router.post('/confirm', isAuthenticated, (req, res) => {
             return res.status(404).json({ error: 'Order not found.' });
         }
 
-        // Demo: simulate successful payment
-        db.run('UPDATE orders SET payment_status = ? WHERE id = ?', ['success', order_id]);
+        // Payment received, order enters 'processing' state (menunggu pengiriman & persetujuan admin)
+        db.run('UPDATE orders SET payment_status = ? WHERE id = ?', ['processing', order_id]);
         saveDatabase();
 
         res.json({
-            message: 'Payment confirmed successfully! 🎉',
+            message: 'Pembayaran berhasil dikonfirmasi! Pesanan Anda sedang diproses oleh admin/penjual. 🎉',
             order_id: order_id,
-            status: 'success'
+            status: 'processing'
         });
     } catch (err) {
         console.error('Payment confirm error:', err);

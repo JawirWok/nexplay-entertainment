@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Admin - Kelola produk digital entertainment NexPlay.">
-    <title>Kelola Produk — Admin NexPlay</title>
+    <meta name="description" content="Seller - Kelola produk digital entertainment NexPlay.">
+    <title>Produk Saya — Seller NexPlay</title>
     <link rel="stylesheet" href="/css/style.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎮</text></svg>">
 </head>
@@ -24,14 +24,11 @@
     <main class="main-content">
         <div class="admin-layout">
             <aside class="admin-sidebar">
-                <div class="sidebar-title">Dashboard</div>
+                <div class="sidebar-title">Seller Dashboard</div>
                 <ul class="sidebar-nav">
-                    <li><a href="/admin/dashboard.html" class="sidebar-link">📊 Overview</a></li>
-                    <li><a href="/admin/products.html" class="sidebar-link active">📦 Produk</a></li>
-                    <li><a href="/admin/orders.html" class="sidebar-link">🧾 Transaksi</a></li>
-                    <li><a href="/admin/vouchers.html" class="sidebar-link">🎟️ Voucher Diskon</a></li>
-                    <li><a href="/admin/revenue.html" class="sidebar-link">💰 Laporan Omset</a></li>
-                    <li><a href="/admin/users.html" class="sidebar-link">👥 Users</a></li>
+                    <li><a href="/seller/index.html" class="sidebar-link">📊 Overview</a></li>
+                    <li><a href="/seller/products.html" class="sidebar-link active">📦 Produk Saya</a></li>
+                    <li><a href="/seller/orders.html" class="sidebar-link">🧾 Pesanan Masuk</a></li>
                 </ul>
                 <div class="sidebar-title">Quick Links</div>
                 <ul class="sidebar-nav">
@@ -43,8 +40,8 @@
             <div class="admin-content">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;flex-wrap:wrap;gap:16px">
                     <div>
-                        <h2>📦 Kelola <span class="text-gradient">Produk</span></h2>
-                        <p style="color:var(--text-secondary)">Tambah, edit, dan hapus produk digital</p>
+                        <h2>📦 Produk <span class="text-gradient">Saya</span></h2>
+                        <p style="color:var(--text-secondary)">Tambah, edit, dan hapus produk Anda</p>
                     </div>
                     <button class="btn btn-primary" onclick="openAddModal()">➕ Tambah Produk</button>
                 </div>
@@ -67,10 +64,10 @@
                                 <th>ID</th>
                                 <th>Produk</th>
                                 <th>Kategori</th>
-                                <th>Harga</th>
+                                <th>Harga Asli</th>
+                                <th>Diskon</th>
                                 <th>Stok</th>
                                 <th>Rating</th>
-                                <th>Featured</th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>
@@ -111,12 +108,12 @@
                             <input type="number" id="p-price" class="form-control" required min="0">
                         </div>
                         <div class="form-group">
-                            <label for="p-stock">Stok</label>
-                            <input type="number" id="p-stock" class="form-control" value="100">
+                            <label for="p-discount">Diskon (%)</label>
+                            <input type="number" id="p-discount" class="form-control" value="0" min="0" max="100">
                         </div>
                         <div class="form-group">
-                            <label for="p-rating">Rating (0-5)</label>
-                            <input type="number" id="p-rating" class="form-control" value="0" min="0" max="5" step="0.1">
+                            <label for="p-stock">Stok</label>
+                            <input type="number" id="p-stock" class="form-control" value="100">
                         </div>
                         <div class="form-group">
                             <label for="p-developer">Developer / Publisher</label>
@@ -129,16 +126,6 @@
                         <div class="form-group">
                             <label for="p-year">Tahun Rilis</label>
                             <input type="number" id="p-year" class="form-control" value="2024">
-                        </div>
-                        <div class="form-group">
-                            <label for="p-discount">Diskon (%)</label>
-                            <input type="number" id="p-discount" class="form-control" value="0" min="0" max="100">
-                        </div>
-                        <div class="form-group" style="grid-column:1/-1">
-                            <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-                                <input type="checkbox" id="p-featured" value="1" style="transform:scale(1.2)"> 
-                                Jadikan Produk Unggulan (Featured)
-                            </label>
                         </div>
                         <div class="form-group" style="grid-column:1/-1">
                             <label for="p-description">Deskripsi</label>
@@ -174,20 +161,25 @@
 
         async function loadProducts() {
             try {
+                if (!AppState.user) {
+                    await checkAuth(); // Ensures AppState is loaded
+                }
+
+                if (!AppState.user || AppState.user.role !== 'seller') {
+                    window.location.href = '/login.html';
+                    return;
+                }
+
                 const category = document.getElementById('filter-category').value;
                 const search = document.getElementById('search-product').value;
 
-                let url = '/api/products?';
+                let url = `/api/products?seller_id=${AppState.user.id}&`;
                 if (category) url += `category=${category}&`;
                 if (search) url += `search=${encodeURIComponent(search)}&`;
 
                 const data = await API.get(url);
                 renderProducts(data.products);
             } catch (err) {
-                if (err.message.includes('Unauthorized') || err.message.includes('Forbidden')) {
-                    window.location.href = '/login.html';
-                    return;
-                }
                 showToast(err.message, 'error');
             }
         }
@@ -215,9 +207,9 @@
                     </td>
                     <td><span class="category-badge ${p.category}">${p.category}</span></td>
                     <td style="font-weight:700;color:var(--text-primary)">${formatRupiah(p.price)}</td>
+                    <td><span style="color:#ff4757;font-weight:600">${p.discount_percentage || 0}%</span></td>
                     <td>${p.stock}</td>
-                    <td>⭐ ${p.rating}</td>
-                    <td>${p.featured ? '✅' : '—'}</td>
+                    <td>⭐ ${Number(p.rating).toFixed(1)}</td>
                     <td>
                         <div style="display:flex;gap:6px">
                             <button class="btn btn-secondary btn-sm" onclick="openEditModal(${p.id})">✏️</button>
@@ -234,6 +226,7 @@
             document.getElementById('product-form').reset();
             document.getElementById('p-stock').value = 100;
             document.getElementById('p-year').value = 2024;
+            document.getElementById('p-discount').value = 0;
             document.getElementById('product-modal').classList.add('show');
         }
 
@@ -248,12 +241,10 @@
                 document.querySelector(`input[name="p-category"][value="${p.category}"]`).checked = true;
                 document.getElementById('p-price').value = p.price;
                 document.getElementById('p-stock').value = p.stock;
-                document.getElementById('p-rating').value = p.rating;
+                document.getElementById('p-discount').value = p.discount_percentage || 0;
                 document.getElementById('p-developer').value = p.developer || '';
                 document.getElementById('p-platform').value = p.platform || '';
                 document.getElementById('p-year').value = p.release_year || 2024;
-                document.getElementById('p-discount').value = p.discount_percentage || 0;
-                document.getElementById('p-featured').checked = p.featured === 1;
                 document.getElementById('p-description').value = p.description || '';
 
                 document.getElementById('product-modal').classList.add('show');
@@ -272,12 +263,10 @@
                 category: document.querySelector('input[name="p-category"]:checked').value,
                 price: parseFloat(document.getElementById('p-price').value),
                 stock: parseInt(document.getElementById('p-stock').value),
-                rating: parseFloat(document.getElementById('p-rating').value),
+                discount_percentage: parseInt(document.getElementById('p-discount').value) || 0,
                 developer: document.getElementById('p-developer').value,
                 platform: document.getElementById('p-platform').value,
                 release_year: parseInt(document.getElementById('p-year').value),
-                discount_percentage: parseInt(document.getElementById('p-discount').value || 0),
-                featured: document.getElementById('p-featured').checked ? 1 : 0,
                 description: document.getElementById('p-description').value,
                 image_url: ''
             };

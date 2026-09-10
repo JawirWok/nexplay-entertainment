@@ -67,10 +67,23 @@
         let selectedMethod = null;
         let cartData = null;
         let currentOrder = null;
+        let appliedVoucher = null;
+        let savedMethods = [];
 
         async function loadCheckout() {
             try {
                 cartData = await API.get('/api/cart');
+
+                // Filter by selected items from sessionStorage
+                const selectedItemsJson = sessionStorage.getItem('nexplay_checkout_items');
+                if (selectedItemsJson) {
+                    try {
+                        const selectedItemIds = JSON.parse(selectedItemsJson);
+                        if (Array.isArray(selectedItemIds) && selectedItemIds.length > 0) {
+                            cartData.items = cartData.items.filter(i => selectedItemIds.includes(i.id));
+                        }
+                    } catch (e) { console.error('Invalid selected items in session storage'); }
+                }
 
                 if (!cartData.items || cartData.items.length === 0) {
                     document.getElementById('checkout-content').innerHTML = `
@@ -84,9 +97,13 @@
                     return;
                 }
 
+                // Calculate subtotal
+                cartData.subtotal = cartData.items.reduce((sum, i) => sum + ((i.actual_price || i.price) * i.quantity), 0);
+
                 // Load payment methods
                 const methodsData = await API.get('/api/payment/methods');
-                renderPaymentStep(methodsData.methods);
+                savedMethods = methodsData.methods;
+                renderPaymentStep(savedMethods);
             } catch (err) {
                 if (err.message.includes('Unauthorized')) {
                     window.location.href = '/login.html';
@@ -97,6 +114,10 @@
         }
 
         function renderPaymentStep(methods) {
+            cartData.subtotal = cartData.items.reduce((sum, i) => sum + ((i.actual_price || i.price) * i.quantity), 0);
+            const discountAmount = appliedVoucher ? appliedVoucher.discount_amount : 0;
+            cartData.finalTotal = Math.max(0, cartData.subtotal - discountAmount);
+
             // Group methods by type
             const ewallets = methods.filter(m => m.type === 'e-wallet');
             const banks = methods.filter(m => m.type === 'bank_transfer');
@@ -115,12 +136,55 @@
                                 <div style="font-weight:600;font-size:0.92rem;color:var(--text-primary)">${item.name}</div>
                                 <div style="font-size:0.8rem;color:var(--text-muted)">x${item.quantity}</div>
                             </div>
-                            <div style="font-weight:700;color:var(--text-primary);font-size:0.95rem">${formatRupiah(item.price * item.quantity)}</div>
+                            <div style="text-align:right">
+                                ${item.discount_percentage > 0 ? `<div style="font-size:0.75rem;text-decoration:line-through;color:var(--text-muted)">${formatRupiah(item.price * item.quantity)}</div>` : ''}
+                                <div style="font-weight:700;color:var(--text-primary);font-size:0.95rem">${formatRupiah((item.actual_price || item.price) * item.quantity)}</div>
+                            </div>
                         </div>
                     `).join('')}
-                    <div style="display:flex;justify-content:space-between;padding-top:16px;margin-top:8px;font-size:1.15rem;font-weight:700">
-                        <span>Total</span>
-                        <span style="color:var(--text-primary)">${formatRupiah(cartData.total)}</span>
+
+                    <!-- Voucher Section -->
+                    <div style="margin-top:20px;padding:16px;background:var(--bg-tertiary);border-radius:var(--radius-md);border:var(--border-light)">
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                            <span style="font-size:1.1rem">🎟️</span>
+                            <span style="font-size:0.88rem;font-weight:700;color:var(--text-primary)">Voucher Promo / Diskon</span>
+                        </div>
+                        <div style="display:flex;gap:8px">
+                            <input type="text" id="voucher-input" class="form-control" placeholder="Masukkan kode (cth: HEMAT10)" 
+                                   style="text-transform:uppercase;font-weight:600" 
+                                   ${appliedVoucher ? 'disabled' : ''} 
+                                   value="${appliedVoucher ? appliedVoucher.code : ''}">
+                            ${appliedVoucher ? 
+                                `<button class="btn btn-secondary btn-sm" onclick="removeVoucher()" style="white-space:nowrap">✕ Hapus</button>` : 
+                                `<button class="btn btn-primary btn-sm" onclick="applyVoucher()" style="white-space:nowrap">Gunakan</button>`
+                            }
+                        </div>
+                        ${appliedVoucher ? `
+                            <div style="margin-top:8px;font-size:0.85rem;color:var(--accent-green);font-weight:600;display:flex;align-items:center;gap:6px">
+                                <span>✅ Voucher <strong>${appliedVoucher.code}</strong> aktif! Hemat ${formatRupiah(appliedVoucher.discount_amount)}</span>
+                            </div>
+                        ` : `
+                            <div style="font-size:0.75rem;color:var(--text-muted);margin-top:6px">
+                                Punya kode voucher promo? Masukkan untuk mendapatkan potongan harga.
+                            </div>
+                        `}
+                    </div>
+
+                    <div style="margin-top:16px;border-top:var(--border-light);padding-top:12px">
+                        <div style="display:flex;justify-content:space-between;font-size:0.95rem;margin-bottom:6px">
+                            <span style="color:var(--text-secondary)">Subtotal</span>
+                            <span style="font-weight:600">${formatRupiah(cartData.subtotal)}</span>
+                        </div>
+                        ${appliedVoucher ? `
+                            <div style="display:flex;justify-content:space-between;font-size:0.95rem;margin-bottom:6px;color:var(--accent-green)">
+                                <span>Diskon Voucher (${appliedVoucher.code})</span>
+                                <span style="font-weight:700">-${formatRupiah(appliedVoucher.discount_amount)}</span>
+                            </div>
+                        ` : ''}
+                        <div style="display:flex;justify-content:space-between;padding-top:12px;margin-top:8px;font-size:1.25rem;font-weight:800;border-top:var(--border-medium)">
+                            <span>Total Pembayaran</span>
+                            <span style="color:var(--text-primary)">${formatRupiah(cartData.finalTotal)}</span>
+                        </div>
                     </div>
                 </div>
 
@@ -130,8 +194,8 @@
                     <h4 style="font-size:0.85rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">E-Wallet</h4>
                     <div class="payment-methods">
                         ${ewallets.map(m => `
-                            <div class="glass-card payment-method" data-method="${m.id}" onclick="selectMethod('${m.id}')">
-                                <div class="method-icon">${m.icon}</div>
+                            <div class="glass-card payment-method ${selectedMethod === m.id ? 'selected' : ''}" data-method="${m.id}" onclick="selectMethod('${m.id}')">
+                                <div class="method-icon" style="background:#fff;display:flex;align-items:center;justify-content:center;font-size:0.8rem;color:#000;text-align:center;">${m.icon.startsWith('http') ? `<img src="${m.icon}" alt="${m.name}" style="max-width:80%;max-height:80%;object-fit:contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;font-weight:bold">${m.name}</span>` : m.icon}</div>
                                 <div class="method-info">
                                     <h4>${m.name}</h4>
                                     <p>${m.description}</p>
@@ -143,8 +207,8 @@
                     <h4 style="font-size:0.85rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin:20px 0 12px">Bank Transfer</h4>
                     <div class="payment-methods">
                         ${banks.map(m => `
-                            <div class="glass-card payment-method" data-method="${m.id}" onclick="selectMethod('${m.id}')">
-                                <div class="method-icon">${m.icon}</div>
+                            <div class="glass-card payment-method ${selectedMethod === m.id ? 'selected' : ''}" data-method="${m.id}" onclick="selectMethod('${m.id}')">
+                                <div class="method-icon" style="background:#fff;display:flex;align-items:center;justify-content:center;font-size:0.8rem;color:#000;text-align:center;">${m.icon.startsWith('http') ? `<img src="${m.icon}" alt="${m.name}" style="max-width:80%;max-height:80%;object-fit:contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;font-weight:bold">${m.name}</span>` : m.icon}</div>
                                 <div class="method-info">
                                     <h4>${m.name}</h4>
                                     <p>${m.description}</p>
@@ -156,8 +220,8 @@
                     <h4 style="font-size:0.85rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin:20px 0 12px">Lainnya</h4>
                     <div class="payment-methods">
                         ${others.map(m => `
-                            <div class="glass-card payment-method" data-method="${m.id}" onclick="selectMethod('${m.id}')">
-                                <div class="method-icon">${m.icon}</div>
+                            <div class="glass-card payment-method ${selectedMethod === m.id ? 'selected' : ''}" data-method="${m.id}" onclick="selectMethod('${m.id}')">
+                                <div class="method-icon" style="background:#fff;display:flex;align-items:center;justify-content:center;font-size:0.8rem;color:#000;text-align:center;">${m.icon.startsWith('http') ? `<img src="${m.icon}" alt="${m.name}" style="max-width:80%;max-height:80%;object-fit:contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;font-weight:bold">${m.name}</span>` : m.icon}</div>
                                 <div class="method-info">
                                     <h4>${m.name}</h4>
                                     <p>${m.description}</p>
@@ -167,10 +231,33 @@
                     </div>
                 </div>
 
-                <button class="btn btn-primary btn-lg" style="width:100%" id="pay-btn" onclick="processPayment()" disabled>
-                    🔒 Pilih Metode Pembayaran Dulu
+                <button class="btn btn-primary btn-lg" style="width:100%" id="pay-btn" onclick="processPayment()" ${selectedMethod ? '' : 'disabled'}>
+                    ${selectedMethod ? `💳 Bayar ${formatRupiah(cartData.finalTotal)}` : '🔒 Pilih Metode Pembayaran Dulu'}
                 </button>
             `;
+        }
+
+        async function applyVoucher() {
+            const input = document.getElementById('voucher-input');
+            const code = input ? input.value.trim() : '';
+            if (!code) {
+                showToast('Masukkan kode voucher terlebih dahulu', 'warning');
+                return;
+            }
+            try {
+                const res = await API.post('/api/vouchers/apply', { code, total_amount: cartData.subtotal });
+                appliedVoucher = res.voucher;
+                showToast(res.message, 'success');
+                renderPaymentStep(savedMethods);
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        function removeVoucher() {
+            appliedVoucher = null;
+            showToast('Voucher dibatalkan', 'info');
+            renderPaymentStep(savedMethods);
         }
 
         function selectMethod(methodId) {
@@ -183,7 +270,7 @@
 
             const btn = document.getElementById('pay-btn');
             btn.disabled = false;
-            btn.innerHTML = `💳 Bayar ${formatRupiah(cartData.total)}`;
+            btn.innerHTML = `💳 Bayar ${formatRupiah(cartData.finalTotal)}`;
         }
 
         async function processPayment() {
@@ -197,9 +284,17 @@
             modal.classList.add('show');
 
             try {
+                // Get selected items
+                let selectedItems = undefined;
+                try {
+                    selectedItems = JSON.parse(sessionStorage.getItem('nexplay_checkout_items'));
+                } catch(e) {}
+
                 // Step 1: Create order (checkout)
                 const orderData = await API.post('/api/orders/checkout', {
-                    payment_method: selectedMethod
+                    payment_method: selectedMethod,
+                    selected_items: selectedItems,
+                    voucher_code: appliedVoucher ? appliedVoucher.code : ''
                 });
 
                 currentOrder = orderData.order;

@@ -8,7 +8,7 @@ router.get('/', isAuthenticated, (req, res) => {
     try {
         const db = getDb();
         const result = db.exec(`
-            SELECT ci.id, ci.quantity, p.id as product_id, p.name, p.price, p.image_url, p.category
+            SELECT ci.id, ci.quantity, p.id as product_id, p.name, p.price, p.image_url, p.category, p.discount_percentage
             FROM cart_items ci
             JOIN products p ON ci.product_id = p.id
             WHERE ci.user_id = ?
@@ -22,7 +22,12 @@ router.get('/', isAuthenticated, (req, res) => {
         const items = result[0].values.map(row => {
             const item = {};
             columns.forEach((col, i) => { item[col] = row[i]; });
-            item.subtotal = item.price * item.quantity;
+            let actualPrice = item.price;
+            if (item.discount_percentage && item.discount_percentage > 0) {
+                actualPrice = item.price - (item.price * item.discount_percentage / 100);
+            }
+            item.actual_price = actualPrice;
+            item.subtotal = actualPrice * item.quantity;
             return item;
         });
 

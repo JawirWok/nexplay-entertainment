@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS users (
     username TEXT UNIQUE NOT NULL,
     email TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL,
-    role TEXT DEFAULT 'user' CHECK(role IN ('admin', 'user')),
+    role TEXT DEFAULT 'user' CHECK(role IN ('admin', 'user', 'seller')),
     avatar TEXT DEFAULT '',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -23,7 +23,10 @@ CREATE TABLE IF NOT EXISTS products (
     developer TEXT DEFAULT '',
     release_year INTEGER DEFAULT 2024,
     featured INTEGER DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    seller_id INTEGER DEFAULT 1,
+    discount_percentage INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (seller_id) REFERENCES users(id)
 );
 
 CREATE TABLE IF NOT EXISTS cart_items (
@@ -53,6 +56,23 @@ CREATE TABLE IF NOT EXISTS order_items (
     product_id INTEGER NOT NULL,
     quantity INTEGER DEFAULT 1,
     price REAL NOT NULL,
+    seller_id INTEGER,
+    admin_commission REAL DEFAULT 0,
+    seller_commission REAL DEFAULT 0,
     FOREIGN KEY (order_id) REFERENCES orders(id),
-    FOREIGN KEY (product_id) REFERENCES products(id)
+    FOREIGN KEY (product_id) REFERENCES products(id),
+    FOREIGN KEY (seller_id) REFERENCES users(id)
+);
+
+CREATE TABLE IF NOT EXISTS reviews (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    product_id INTEGER NOT NULL,
+    order_id INTEGER NOT NULL,
+    rating INTEGER NOT NULL CHECK(rating >= 1 AND rating <= 5),
+    comment TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (product_id) REFERENCES products(id),
+    FOREIGN KEY (order_id) REFERENCES orders(id)
 );

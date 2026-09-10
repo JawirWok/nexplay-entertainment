@@ -136,7 +136,8 @@ function updateNavUI() {
                         <div style="font-weight:600;color:var(--text-primary)">${AppState.user.username}</div>
                         <div style="font-size:0.8rem;color:var(--text-muted)">${AppState.user.role === 'admin' ? '👑 Admin' : '👤 User'}</div>
                     </div>
-                    ${AppState.user.role === 'admin' ? '<a href="/admin/dashboard.html">🛠️ Admin Dashboard</a>' : ''}
+                    ${AppState.user.role === 'admin' ? '<a href="/admin/index.html">🛠️ Admin Dashboard</a>' : ''}
+                    ${AppState.user.role === 'seller' ? '<a href="/seller/index.html">🛍️ Seller Dashboard</a>' : ''}
                     <a href="/orders.html">📦 Pesanan Saya</a>
                     <div class="dropdown-divider"></div>
                     <button onclick="logout()">🚪 Logout</button>
@@ -257,6 +258,17 @@ function renderProductCard(product) {
         ? `<img src="${product.image_url}" alt="${product.name}" loading="lazy" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">`
         : '';
     const placeholderDisplay = product.image_url ? 'display:none;' : '';
+    
+    let priceHtml = `<span class="price">${formatRupiah(product.price)}</span>`;
+    if (product.discount_percentage > 0) {
+        const discountedPrice = product.price - (product.price * product.discount_percentage / 100);
+        priceHtml = `
+            <div style="display:flex; flex-direction:column;">
+                <span style="text-decoration: line-through; font-size: 0.8rem; color: #888;">${formatRupiah(product.price)}</span>
+                <span class="price" style="color: #ff4757;">${formatRupiah(discountedPrice)} <span style="font-size:0.7rem; background:#ff4757; color:white; padding:2px 4px; border-radius:4px;">-${product.discount_percentage}%</span></span>
+            </div>
+        `;
+    }
 
     return `
         <div class="glass-card product-card" onclick="window.location.href='/product.html?id=${product.id}'" data-product-id="${product.id}">
@@ -264,14 +276,14 @@ function renderProductCard(product) {
                 ${imgTag}
                 <div class="placeholder-img" style="${placeholderDisplay}">${getCategoryIcon(product.category)}</div>
                 <span class="category-badge ${product.category}">${product.category}</span>
-                <span class="rating-badge">⭐ ${product.rating}</span>
+                <span class="rating-badge">⭐ ${Number(product.rating).toFixed(1)}</span>
             </div>
             <div class="card-body">
                 <h4>${product.name}</h4>
                 <div class="developer">${product.developer || product.platform}</div>
             </div>
-            <div class="card-footer">
-                <span class="price">${formatRupiah(product.price)}</span>
+            <div class="card-footer" style="align-items:flex-end;">
+                ${priceHtml}
                 <button class="btn-cart" onclick="event.stopPropagation(); addToCart(${product.id})" title="Add to Cart">🛒</button>
             </div>
         </div>

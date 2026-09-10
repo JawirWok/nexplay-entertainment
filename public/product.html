@@ -55,19 +55,26 @@
                 document.getElementById('product-content').innerHTML = `
                     <div class="product-detail-layout">
                         <div class="glass-card product-detail-image">
-                            ${p.image_url ? `<img src="${p.image_url}" alt="${p.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : ''}
+                            ${p.image_url ? `<img src="${p.image_url}" alt="${p.name}" loading="lazy" decoding="async" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : ''}
                             <div class="placeholder-img" style="${p.image_url ? 'display:none;' : ''}font-size:5rem">${getCategoryIcon(p.category)}</div>
                         </div>
                         <div class="product-detail-info">
                             <span class="category-badge ${p.category}" style="margin-bottom:12px;display:inline-block">${p.category.toUpperCase()}</span>
                             <h1>${p.name}</h1>
                             <div class="product-meta">
-                                <span class="product-meta-item">⭐ ${p.rating}/5</span>
+                                <span class="product-meta-item">⭐ ${Number(p.rating).toFixed(1)}/5</span>
                                 <span class="product-meta-item">🏢 ${p.developer}</span>
                                 <span class="product-meta-item">📅 ${p.release_year}</span>
                                 <span class="product-meta-item">💻 ${p.platform}</span>
                             </div>
-                            <div class="product-price">${formatRupiah(p.price)}</div>
+                            <div class="product-price">
+                                ${p.discount_percentage > 0 ? 
+                                    `<span style="text-decoration:line-through;color:#888;font-size:1.2rem;margin-right:10px">${formatRupiah(p.price)}</span>
+                                     <span style="color:#ff4757">${formatRupiah(p.price - (p.price * p.discount_percentage / 100))}</span>
+                                     <span style="font-size:0.9rem;background:#ff4757;color:white;padding:4px 8px;border-radius:4px;vertical-align:middle;margin-left:10px">-${p.discount_percentage}%</span>` : 
+                                    formatRupiah(p.price)
+                                }
+                            </div>
                             <p class="product-description">${p.description}</p>
 
                             <div style="margin-bottom:24px">
@@ -93,7 +100,16 @@
                             </div>
                         </div>
                     </div>
+                    
+                    <div class="reviews-section" style="margin-top: 40px;">
+                        <h3>Ulasan Pembeli</h3>
+                        <div id="reviews-content">
+                            <div class="page-loading"><div class="loading-spinner"></div></div>
+                        </div>
+                    </div>
                 `;
+                
+                loadReviews(id);
             } catch (err) {
                 document.getElementById('product-content').innerHTML = `
                     <div class="empty-state">
@@ -103,6 +119,36 @@
                         <a href="/" class="btn btn-primary">Kembali ke Home</a>
                     </div>
                 `;
+            }
+        }
+
+        async function loadReviews(productId) {
+            try {
+                const data = await API.get(`/api/products/${productId}/reviews`);
+                const container = document.getElementById('reviews-content');
+                if (!data || !data.reviews || data.reviews.length === 0) {
+                    container.innerHTML = '<p style="color:var(--text-muted)">Belum ada ulasan untuk produk ini.</p>';
+                    return;
+                }
+                
+                let html = '<div style="display:flex;flex-direction:column;gap:15px;margin-top:15px;">';
+                for (const r of data.reviews) {
+                    html += `
+                        <div class="glass-card" style="padding:15px">
+                            <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+                                <strong>${r.username || 'User'}</strong>
+                                <span style="color:#f39c12">⭐ ${r.rating}/5</span>
+                            </div>
+                            <p style="margin:0;color:var(--text-secondary)">${r.comment || '-'}</p>
+                            <small style="color:var(--text-muted);display:block;margin-top:8px">${new Date(r.created_at).toLocaleDateString('id-ID')}</small>
+                        </div>
+                    `;
+                }
+                html += '</div>';
+                container.innerHTML = html;
+            } catch (err) {
+                console.error('Failed to load reviews:', err);
+                document.getElementById('reviews-content').innerHTML = '<p style="color:var(--text-muted)">Belum ada ulasan untuk produk ini.</p>';
             }
         }
 

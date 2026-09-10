@@ -123,14 +123,13 @@
                 </div>
 
                 <!-- Sort -->
-                <div style="display:flex;justify-content:flex-end;margin-bottom:24px" class="animate-in">
-                    <select class="form-control" style="width:auto;min-width:180px" id="sort-select" onchange="handleSort(this.value)">
-                        <option value="">Urutkan</option>
-                        <option value="price_asc">Harga: Rendah → Tinggi</option>
-                        <option value="price_desc">Harga: Tinggi → Rendah</option>
-                        <option value="rating">Rating Tertinggi</option>
-                        <option value="newest">Terbaru</option>
-                    </select>
+                <div style="display:flex;justify-content:flex-end;margin-bottom:24px;gap:8px" class="animate-in" id="sort-buttons">
+                    <span style="align-self:center;margin-right:8px;font-size:0.9rem;color:var(--text-muted)">Urutkan:</span>
+                    <button class="btn btn-secondary btn-sm sort-btn active" data-sort="" onclick="handleSort('')">Relevan</button>
+                    <button class="btn btn-secondary btn-sm sort-btn" data-sort="price_asc" onclick="handleSort('price_asc')">Termurah</button>
+                    <button class="btn btn-secondary btn-sm sort-btn" data-sort="price_desc" onclick="handleSort('price_desc')">Termahal</button>
+                    <button class="btn btn-secondary btn-sm sort-btn" data-sort="rating" onclick="handleSort('rating')">Rating Tertinggi</button>
+                    <button class="btn btn-secondary btn-sm sort-btn" data-sort="newest" onclick="handleSort('newest')">Terbaru</button>
                 </div>
 
                 <div class="product-grid animate-in" id="all-products">
@@ -256,6 +255,10 @@
         // Sort handler
         function handleSort(value) {
             currentSort = value;
+            document.querySelectorAll('.sort-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.sort === value);
+                if (value === '' && btn.dataset.sort === '') btn.classList.add('active'); // default
+            });
             loadProducts();
         }
 

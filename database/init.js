@@ -90,8 +90,25 @@ CREATE TABLE IF NOT EXISTS order_items (
     product_id INTEGER NOT NULL,
     quantity INTEGER DEFAULT 1,
     price REAL NOT NULL,
+    seller_id INTEGER DEFAULT 1,
+    admin_commission REAL DEFAULT 0,
+    seller_commission REAL DEFAULT 0,
+    fulfillment_status TEXT DEFAULT 'menunggu_seller',
     FOREIGN KEY (order_id) REFERENCES orders(id),
     FOREIGN KEY (product_id) REFERENCES products(id)
+);
+
+CREATE TABLE IF NOT EXISTS vouchers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    code TEXT UNIQUE NOT NULL,
+    discount_type TEXT DEFAULT 'percentage' CHECK(discount_type IN ('percentage', 'fixed')),
+    discount_value REAL NOT NULL,
+    min_purchase REAL DEFAULT 0,
+    usage_limit INTEGER DEFAULT 100,
+    used_count INTEGER DEFAULT 0,
+    valid_until DATE,
+    is_active INTEGER DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 `;
 
@@ -100,7 +117,8 @@ function createFallbackDb() {
     const users = [
         { id: 1, username: 'admin', email: 'admin@nexplay.com', password: bcrypt.hashSync('admin123', 10), role: 'admin', created_at: new Date().toISOString() },
         { id: 2, username: 'user1', email: 'user1@nexplay.com', password: bcrypt.hashSync('user123', 10), role: 'user', created_at: new Date().toISOString() },
-        { id: 3, username: 'gamer99', email: 'gamer99@nexplay.com', password: bcrypt.hashSync('user123', 10), role: 'user', created_at: new Date().toISOString() }
+        { id: 3, username: 'gamer99', email: 'gamer99@nexplay.com', password: bcrypt.hashSync('user123', 10), role: 'user', created_at: new Date().toISOString() },
+        { id: 4, username: 'seller1', email: 'seller1@nexplay.com', password: bcrypt.hashSync('seller123', 10), role: 'seller', created_at: new Date().toISOString() }
     ];
 
     const prodCols = ['id', 'name', 'description', 'price', 'category', 'image_url', 'stock', 'rating', 'platform', 'developer', 'release_year', 'featured'];
@@ -323,6 +341,38 @@ async function initDatabase() {
 
         db.run(SCHEMA_SQL);
 
+        // Run migrations for existing databases
+        try {
+            const orderCols = db.exec('PRAGMA table_info(orders)')[0].values.map(v => v[1]);
+            if (!orderCols.includes('voucher_code')) {
+                db.run('ALTER TABLE orders ADD COLUMN voucher_code TEXT DEFAULT ""');
+            }
+            if (!orderCols.includes('voucher_discount')) {
+                db.run('ALTER TABLE orders ADD COLUMN voucher_discount REAL DEFAULT 0');
+            }
+            const itemCols = db.exec('PRAGMA table_info(order_items)')[0].values.map(v => v[1]);
+            if (!itemCols.includes('fulfillment_status')) {
+                db.run('ALTER TABLE order_items ADD COLUMN fulfillment_status TEXT DEFAULT "menunggu_seller"');
+            }
+        } catch (e) {
+            console.warn('Migration warning:', e.message);
+        }
+
+        // Seed initial vouchers if empty
+        try {
+            const vResult = db.exec('SELECT COUNT(*) FROM vouchers');
+            const vCount = vResult[0] ? vResult[0].values[0][0] : 0;
+            if (vCount === 0) {
+                db.run(`INSERT INTO vouchers (code, discount_type, discount_value, min_purchase, usage_limit, used_count, valid_until, is_active)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                    ['HEMAT10', 'percentage', 10, 50000, 100, 0, '2026-12-31', 1]);
+                db.run(`INSERT INTO vouchers (code, discount_type, discount_value, min_purchase, usage_limit, used_count, valid_until, is_active)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                    ['NEXPLAY25', 'fixed', 25000, 100000, 50, 0, '2026-12-31', 1]);
+                saveDatabase();
+            }
+        } catch (e) { /* ignore */ }
+
         const result = db.exec('SELECT COUNT(*) as count FROM users');
         const userCount = result[0] ? result[0].values[0][0] : 0;
 
@@ -359,6 +409,7 @@ function saveDatabase() {
 function seedUsers() {
     const adminHash = bcrypt.hashSync('admin123', 10);
     const userHash = bcrypt.hashSync('user123', 10);
+    const sellerHash = bcrypt.hashSync('seller123', 10);
 
     db.run(`INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)`,
         ['admin', 'admin@nexplay.com', adminHash, 'admin']);
@@ -366,6 +417,8 @@ function seedUsers() {
         ['user1', 'user1@nexplay.com', userHash, 'user']);
     db.run(`INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)`,
         ['gamer99', 'gamer99@nexplay.com', userHash, 'user']);
+    db.run(`INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)`,
+        ['seller1', 'seller1@nexplay.com', sellerHash, 'seller']);
 }
 
 function seedProducts() {

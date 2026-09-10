@@ -29,6 +29,8 @@
                     <li><a href="/admin/dashboard.html" class="sidebar-link active">📊 Overview</a></li>
                     <li><a href="/admin/products.html" class="sidebar-link">📦 Produk</a></li>
                     <li><a href="/admin/orders.html" class="sidebar-link">🧾 Transaksi</a></li>
+                    <li><a href="/admin/vouchers.html" class="sidebar-link">🎟️ Voucher Diskon</a></li>
+                    <li><a href="/admin/revenue.html" class="sidebar-link">💰 Laporan Omset</a></li>
                     <li><a href="/admin/users.html" class="sidebar-link">👥 Users</a></li>
                 </ul>
                 <div class="sidebar-title">Quick Links</div>
@@ -51,22 +53,46 @@
                     <div class="glass-card stat-card green">
                         <div class="stat-icon">💰</div>
                         <div class="stat-value" id="stat-revenue">-</div>
-                        <div class="stat-label">Total Pendapatan</div>
+                        <div class="stat-label">Total Penjualan Kotor</div>
                     </div>
                     <div class="glass-card stat-card purple">
+                        <div class="stat-icon">📈</div>
+                        <div class="stat-value" id="stat-commission" style="color:var(--accent-green)">-</div>
+                        <div class="stat-label">Pendapatan Admin (20%)</div>
+                    </div>
+                    <div class="glass-card stat-card magenta">
                         <div class="stat-icon">👥</div>
                         <div class="stat-value" id="stat-users">-</div>
                         <div class="stat-label">Total User</div>
                     </div>
-                    <div class="glass-card stat-card magenta">
+                    <div class="glass-card stat-card orange">
                         <div class="stat-icon">🎮</div>
                         <div class="stat-value" id="stat-products">-</div>
                         <div class="stat-label">Total Produk</div>
                     </div>
-                    <div class="glass-card stat-card orange">
-                        <div class="stat-icon">⏳</div>
-                        <div class="stat-value" id="stat-pending">-</div>
-                        <div class="stat-label">Pesanan Pending</div>
+                </div>
+
+                <div class="glass-card" style="padding:24px;margin-top:24px">
+                    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:20px">
+                        <h3 style="margin:0">📅 Rincian Pendapatan Berdasarkan Waktu</h3>
+                        <a href="/admin/revenue.html" class="btn btn-secondary btn-sm">Lihat Laporan Omset Lengkap →</a>
+                    </div>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:20px;">
+                        <div style="padding:16px;background:var(--bg-tertiary);border-radius:var(--radius-md);border:var(--border-light)">
+                            <div style="color:var(--text-muted);font-size:0.85rem">Hari Ini</div>
+                            <div id="stat-daily" style="font-size:1.4rem;font-weight:700;color:var(--text-primary)">-</div>
+                            <div style="font-size:0.8rem;color:var(--accent-green);margin-top:4px">Komisi Admin (20%): <strong id="comm-daily">-</strong></div>
+                        </div>
+                        <div style="padding:16px;background:var(--bg-tertiary);border-radius:var(--radius-md);border:var(--border-light)">
+                            <div style="color:var(--text-muted);font-size:0.85rem">Minggu Ini (7 Hari)</div>
+                            <div id="stat-weekly" style="font-size:1.4rem;font-weight:700;color:var(--text-primary)">-</div>
+                            <div style="font-size:0.8rem;color:var(--accent-green);margin-top:4px">Komisi Admin (20%): <strong id="comm-weekly">-</strong></div>
+                        </div>
+                        <div style="padding:16px;background:var(--bg-tertiary);border-radius:var(--radius-md);border:var(--border-light)">
+                            <div style="color:var(--text-muted);font-size:0.85rem">Bulan Ini</div>
+                            <div id="stat-monthly" style="font-size:1.4rem;font-weight:700;color:var(--text-primary)">-</div>
+                            <div style="font-size:0.8rem;color:var(--accent-green);margin-top:4px">Komisi Admin (20%): <strong id="comm-monthly">-</strong></div>
+                        </div>
                     </div>
                 </div>
 
@@ -90,9 +116,17 @@
 
                 document.getElementById('stat-orders').textContent = s.total_orders;
                 document.getElementById('stat-revenue').textContent = formatRupiah(s.total_revenue);
+                document.getElementById('stat-commission').textContent = formatRupiah(s.admin_commission);
                 document.getElementById('stat-users').textContent = s.total_users;
                 document.getElementById('stat-products').textContent = s.total_products;
-                document.getElementById('stat-pending').textContent = s.pending_orders;
+                
+                document.getElementById('stat-daily').textContent = formatRupiah(s.daily_revenue);
+                document.getElementById('stat-weekly').textContent = formatRupiah(s.weekly_revenue);
+                document.getElementById('stat-monthly').textContent = formatRupiah(s.monthly_revenue);
+
+                document.getElementById('comm-daily').textContent = formatRupiah(s.daily_commission || 0);
+                document.getElementById('comm-weekly').textContent = formatRupiah(s.weekly_commission || 0);
+                document.getElementById('comm-monthly').textContent = formatRupiah(s.monthly_commission || 0);
 
                 // Load recent orders
                 const ordersData = await API.get('/api/orders?all=1');
@@ -116,6 +150,7 @@
                                 <th>User</th>
                                 <th>Total</th>
                                 <th>Metode</th>
+                                <th>Item (Detail)</th>
                                 <th>Status</th>
                                 <th>Tanggal</th>
                             </tr>
@@ -127,6 +162,11 @@
                                     <td>${o.username || 'User #' + o.user_id}</td>
                                     <td style="font-weight:600">${formatRupiah(o.total_amount)}</td>
                                     <td>${o.payment_method || '-'}</td>
+                                    <td style="max-width:200px;font-size:0.85rem">
+                                        <ul style="margin:0;padding-left:16px">
+                                            ${o.items.map(i => `<li>${i.name} (x${i.quantity})</li>`).join('')}
+                                        </ul>
+                                    </td>
                                     <td><span class="order-status status-${o.payment_status}">${o.payment_status}</span></td>
                                     <td style="font-size:0.85rem;color:var(--text-muted)">${new Date(o.created_at).toLocaleDateString('id-ID')}</td>
                                 </tr>

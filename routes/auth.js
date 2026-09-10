@@ -6,7 +6,7 @@ const router = express.Router();
 // POST /api/auth/register
 router.post('/register', (req, res) => {
     try {
-        const { username, email, password } = req.body;
+        const { username, email, password, role = 'user' } = req.body;
 
         if (!username || !email || !password) {
             return res.status(400).json({ error: 'Username, email, and password are required.' });
@@ -25,8 +25,9 @@ router.post('/register', (req, res) => {
         }
 
         const hashedPassword = bcrypt.hashSync(password, 10);
+        const userRole = role === 'seller' ? 'seller' : 'user';
         db.run('INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)',
-            [username, email, hashedPassword, 'user']);
+            [username, email, hashedPassword, userRole]);
         saveDatabase();
 
         // Get the newly created user
