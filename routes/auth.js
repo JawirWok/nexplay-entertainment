@@ -87,6 +87,11 @@ router.post('/login', (req, res) => {
 
 // POST /api/auth/logout
 router.post('/logout', (req, res) => {
+    res.setHeader('Set-Cookie', [
+        `nexplay_uid=; Path=/; SameSite=Lax; Max-Age=0`,
+        `nexplay_role=; Path=/; SameSite=Lax; Max-Age=0`,
+        `connect.sid=; Path=/; SameSite=Lax; Max-Age=0`
+    ]);
     req.session.destroy((err) => {
         if (err) {
             return res.status(500).json({ error: 'Logout failed.' });
