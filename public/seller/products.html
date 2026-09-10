@@ -26,25 +26,25 @@
             <aside class="admin-sidebar">
                 <div class="sidebar-title">Seller Dashboard</div>
                 <ul class="sidebar-nav">
-                    <li><a href="/seller/index.html" class="sidebar-link">📊 Overview</a></li>
-                    <li><a href="/seller/products.html" class="sidebar-link active">📦 Produk Saya</a></li>
-                    <li><a href="/seller/orders.html" class="sidebar-link">🧾 Pesanan Masuk</a></li>
+                    <li><a href="/seller/index.html" class="sidebar-link"><i data-lucide="bar-chart-2" style="width:18px;height:18px"></i> Overview</a></li>
+                    <li><a href="/seller/products.html" class="sidebar-link active"><i data-lucide="package" style="width:18px;height:18px"></i> Produk Saya</a></li>
+                    <li><a href="/seller/orders.html" class="sidebar-link"><i data-lucide="receipt" style="width:18px;height:18px"></i> Pesanan Masuk</a></li>
                 </ul>
                 <div class="sidebar-title">Quick Links</div>
                 <ul class="sidebar-nav">
-                    <li><a href="/" class="sidebar-link">🏪 Lihat Store</a></li>
-                    <li><a href="#" class="sidebar-link" onclick="if(window.openNexChat){window.openNexChat();}else{alert('Chat widget sedang dimuat...');}">💬 Chat Admin</a></li>
-                    <li><a href="#" class="sidebar-link" onclick="logout()">🚪 Logout</a></li>
+                    <li><a href="/" class="sidebar-link"><i data-lucide="store" style="width:18px;height:18px"></i> Lihat Store</a></li>
+                    <li><a href="#" class="sidebar-link" onclick="if(window.openNexChat){window.openNexChat();}else{alert('Chat widget sedang dimuat...');}"><i data-lucide="message-circle" style="width:18px;height:18px"></i> Chat Admin</a></li>
+                    <li><a href="#" class="sidebar-link" onclick="logout()"><i data-lucide="log-out" style="width:18px;height:18px"></i> Logout</a></li>
                 </ul>
             </aside>
 
             <div class="admin-content">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;flex-wrap:wrap;gap:16px">
                     <div>
-                        <h2>📦 Produk <span class="text-gradient">Saya</span></h2>
+                        <h2><i data-lucide="package" style="width:18px;height:18px"></i> Produk <span class="text-gradient">Saya</span></h2>
                         <p style="color:var(--text-secondary)">Tambah, edit, dan hapus produk Anda</p>
                     </div>
-                    <button class="btn btn-primary" onclick="openAddModal()">➕ Tambah Produk</button>
+                    <button class="btn btn-primary" onclick="openAddModal()"><i data-lucide="plus" style="width:18px;height:18px;margin-bottom:-4px"></i> Tambah Produk</button>
                 </div>
 
                 <!-- Filter -->
@@ -228,7 +228,7 @@
 
         function openAddModal() {
             editingProductId = null;
-            document.getElementById('modal-title').textContent = '➕ Tambah Produk';
+            document.getElementById('modal-title').innerHTML = '<i data-lucide="plus" style="width:18px;height:18px;margin-bottom:-4px"></i> Tambah Produk';
             document.getElementById('product-form').reset();
             document.getElementById('p-stock').value = 100;
             document.getElementById('p-year').value = 2024;
