@@ -196,6 +196,7 @@
                     return;
                 }
                 container.innerHTML = data.products.map(renderProductCard).join('');
+                if (window.lucide) lucide.createIcons();
             } catch (err) {
                 console.error('Failed to load featured:', err);
             }
@@ -224,6 +225,7 @@
                 }
 
                 container.innerHTML = data.products.map(renderProductCard).join('');
+                if (window.lucide) lucide.createIcons();
             } catch (err) {
                 console.error('Failed to load products:', err);
             }

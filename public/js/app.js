@@ -397,17 +397,18 @@ async function logout() {
     try {
         await API.post('/api/auth/logout');
     } catch (e) { }
-    localStorage.removeItem('nexplay_user');
-    sessionStorage.removeItem('nexplay_checkout_data');
-    sessionStorage.removeItem('nexplay_checkout_items');
-    CartStore.clear(); // Clear local cart
-    AppState.user = null;
-    AppState.cartCount = 0;
-    showToast('Logged out successfully', 'success');
-    updateNavUI();
-    
-    // Always redirect to home on logout to reset memory state
-    window.location.href = '/';
+
+    try {
+        localStorage.removeItem('nexplay_user');
+        sessionStorage.removeItem('nexplay_checkout_data');
+        sessionStorage.removeItem('nexplay_checkout_items');
+        if (typeof CartStore !== 'undefined') CartStore.clear();
+        AppState.user = null;
+        AppState.cartCount = 0;
+    } catch (err) { console.error(err); }
+
+    // Redirect to login to force navigation
+    window.location.href = '/login.html';
 }
 
 // ── Add to Cart ──
@@ -503,7 +504,7 @@ function renderProductCard(product) {
             </div>
             <div class="card-footer" style="align-items:flex-end;">
                 ${priceHtml}
-                <button class="btn-cart" onclick="event.stopPropagation(); addToCart(${product.id})" title="Add to Cart">🛒</button>
+                <button class="btn-cart" onclick="event.stopPropagation(); addToCart(${product.id})" title="Add to Cart"><i data-lucide="shopping-cart" style="width:18px;height:18px"></i></button>
             </div>
         </div>
     `;
