@@ -496,7 +496,7 @@ function renderProductCard(product) {
                 ${imgTag}
                 <div class="placeholder-img" style="${placeholderDisplay}">${getCategoryIcon(product.category)}</div>
                 <span class="category-badge ${product.category}">${product.category}</span>
-                <span class="rating-badge">⭐ ${Number(product.rating).toFixed(1)}</span>
+                <span class="rating-badge"><i data-lucide="star" style="width:14px;height:14px;color:orange;margin-bottom:-2px;fill:orange"></i> ${Number(product.rating).toFixed(1)}</span>
             </div>
             <div class="card-body">
                 <h4>${product.name}</h4>

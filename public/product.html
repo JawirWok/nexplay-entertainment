@@ -62,7 +62,7 @@
                             <span class="category-badge ${p.category}" style="margin-bottom:12px;display:inline-block">${p.category.toUpperCase()}</span>
                             <h1>${p.name}</h1>
                             <div class="product-meta">
-                                <span class="product-meta-item">⭐ ${Number(p.rating).toFixed(1)}/5</span>
+                                <span class="product-meta-item"><i data-lucide="star" style="width:14px;height:14px;color:orange;margin-bottom:-2px;fill:orange"></i> ${Number(p.rating).toFixed(1)}/5</span>
                                 <span class="product-meta-item">🏢 ${p.developer}</span>
                                 <span class="product-meta-item">📅 ${p.release_year}</span>
                                 <span class="product-meta-item">💻 ${p.platform}</span>
@@ -163,7 +163,7 @@
                                     <strong>${r.username || 'User'}</strong>
                                     ${isAnon ? '<span style="font-size:0.72rem;background:rgba(255,255,255,0.08);padding:1px 6px;border-radius:4px;color:var(--text-muted)">Anonim</span>' : ''}
                                 </div>
-                                <span style="color:#f39c12">⭐ ${r.rating}/5</span>
+                                <span style="color:#f39c12"><i data-lucide="star" style="width:14px;height:14px;color:orange;margin-bottom:-2px;fill:orange"></i> ${r.rating}/5</span>
                             </div>
                             <p style="margin:0;color:var(--text-secondary)">${r.comment || '-'}</p>
                             <small style="color:var(--text-muted);display:block;margin-top:8px">${r.created_at ? new Date(r.created_at).toLocaleDateString('id-ID') : 'Baru saja'}</small>
@@ -186,6 +186,29 @@
         }
 
         document.addEventListener('DOMContentLoaded', loadProduct);
+    </script>
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        if (window.lucide) {
+            lucide.createIcons();
+            // Automatically update icons when DOM changes (for dynamic content)
+            const observer = new MutationObserver((mutations) => {
+                let shouldUpdate = false;
+                for (let m of mutations) {
+                    if (m.addedNodes.length > 0) {
+                        shouldUpdate = true;
+                        break;
+                    }
+                }
+                if (shouldUpdate) {
+                    observer.disconnect(); // Prevent infinite loops
+                    lucide.createIcons();
+                    observer.observe(document.body, { childList: true, subtree: true });
+                }
+            });
+            observer.observe(document.body, { childList: true, subtree: true });
+        }
     </script>
 </body>
 </html>

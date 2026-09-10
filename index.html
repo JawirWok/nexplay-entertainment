@@ -108,23 +108,23 @@
         <section class="section" id="catalog">
             <div class="container">
                 <div class="section-header animate-in">
-                    <h2>📦 Katalog <span class="text-gradient">Lengkap</span></h2>
+                    <h2><i data-lucide="package" style="width:28px;height:28px;display:inline-block;vertical-align:middle;margin-right:8px;color:var(--accent-primary)"></i> Katalog <span class="text-gradient">Lengkap</span></h2>
                     <p>Browse semua produk digital entertainment</p>
                 </div>
 
                 <!-- Search -->
                 <div class="search-bar animate-in">
-                    <span class="search-icon">🔍</span>
+                    <span class="search-icon"><i data-lucide="search" style="width:20px;height:20px;margin-bottom:-4px;color:var(--text-muted)"></i></span>
                     <input type="text" id="search-input" placeholder="Cari game, film, musik, ebook..." oninput="handleSearch(this.value)">
                 </div>
 
                 <!-- Category Tabs -->
                 <div class="category-tabs animate-in">
-                    <button class="category-tab active" data-category="all" onclick="filterByCategory('all')">🌐 Semua</button>
-                    <button class="category-tab" data-category="game" onclick="filterByCategory('game')">🎮 Games</button>
-                    <button class="category-tab" data-category="film" onclick="filterByCategory('film')">🎬 Film</button>
-                    <button class="category-tab" data-category="music" onclick="filterByCategory('music')">🎵 Musik</button>
-                    <button class="category-tab" data-category="ebook" onclick="filterByCategory('ebook')">📚 eBook</button>
+                    <button class="category-tab active" data-category="all" onclick="filterByCategory('all')"><i data-lucide="globe" style="width:16px;height:16px;margin-bottom:-2px"></i> Semua</button>
+                    <button class="category-tab" data-category="game" onclick="filterByCategory('game')"><i data-lucide="gamepad-2" style="width:16px;height:16px;margin-bottom:-2px"></i> Games</button>
+                    <button class="category-tab" data-category="film" onclick="filterByCategory('film')"><i data-lucide="clapperboard" style="width:16px;height:16px;margin-bottom:-2px"></i> Film</button>
+                    <button class="category-tab" data-category="music" onclick="filterByCategory('music')"><i data-lucide="music" style="width:16px;height:16px;margin-bottom:-2px"></i> Musik</button>
+                    <button class="category-tab" data-category="ebook" onclick="filterByCategory('ebook')"><i data-lucide="book" style="width:16px;height:16px;margin-bottom:-2px"></i> eBook</button>
                 </div>
 
                 <!-- Sort -->
@@ -275,9 +275,29 @@
             loadProducts();
         });
     </script>
+    
+
     <script src="https://unpkg.com/lucide@latest"></script>
     <script>
-        lucide.createIcons();
+        if (window.lucide) {
+            lucide.createIcons();
+            // Automatically update icons when DOM changes (for dynamic content)
+            const observer = new MutationObserver((mutations) => {
+                let shouldUpdate = false;
+                for (let m of mutations) {
+                    if (m.addedNodes.length > 0) {
+                        shouldUpdate = true;
+                        break;
+                    }
+                }
+                if (shouldUpdate) {
+                    observer.disconnect(); // Prevent infinite loops
+                    lucide.createIcons();
+                    observer.observe(document.body, { childList: true, subtree: true });
+                }
+            });
+            observer.observe(document.body, { childList: true, subtree: true });
+        }
     </script>
 </body>
 </html>

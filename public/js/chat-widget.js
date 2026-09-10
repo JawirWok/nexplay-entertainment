@@ -197,7 +197,7 @@
         btn.id = 'nex-chat-toggle-btn';
         btn.className = 'nex-chat-btn';
         btn.innerHTML = `
-            <span style="font-size:1.2rem">💬</span>
+            <span style="font-size:1.2rem"><i data-lucide="message-circle" style="width:20px;height:20px;margin-bottom:-4px"></i></span>
             <span>Chat Admin</span>
             <span class="nex-chat-badge" id="nex-chat-badge">0</span>
         `;
@@ -210,7 +210,7 @@
         win.innerHTML = `
             <div class="nex-chat-header">
                 <div style="display:flex;align-items:center;gap:10px">
-                    <div style="width:34px;height:34px;border-radius:50%;background:rgba(0,210,255,0.2);display:flex;align-items:center;justify-content:center;font-size:1.1rem">🛡️</div>
+                    <div style="width:34px;height:34px;border-radius:50%;background:rgba(0,210,255,0.2);display:flex;align-items:center;justify-content:center;font-size:1.1rem"><i data-lucide="shield" style="width:18px;height:18px"></i></div>
                     <div>
                         <div style="font-weight:700;font-size:0.9rem;color:#ffffff">Admin NexPlay</div>
                         <div style="font-size:0.72rem;color:#00b894;display:flex;align-items:center;gap:4px">
@@ -222,13 +222,13 @@
             </div>
             <div class="nex-chat-messages" id="nex-chat-msgs">
                 <div style="text-align:center;padding:28px 10px;color:rgba(255,255,255,0.5);font-size:0.82rem">
-                    <div style="font-size:2rem;margin-bottom:6px">👋</div>
+                    <div style="font-size:2rem;margin-bottom:6px"><i data-lucide="hand" style="width:32px;height:32px;margin:auto"></i></div>
                     Halo <strong>${escapeHtml(currentUser.username)}</strong>! Ada yang bisa kami bantu seputar pesanan atau akun game Anda?
                 </div>
             </div>
             <form class="nex-chat-footer" id="nex-chat-form" onsubmit="window.sendNexChatMessage(event)">
                 <input type="text" id="nex-chat-input" class="form-control" placeholder="Tulis pesan ke admin..." autocomplete="off" required style="font-size:0.85rem;padding:9px 12px">
-                <button type="submit" id="nex-chat-send-btn" class="btn btn-primary" style="padding:8px 14px;font-size:0.9rem">🚀</button>
+                <button type="submit" id="nex-chat-send-btn" class="btn btn-primary" style="padding:8px 14px;font-size:0.9rem"><i data-lucide="send" style="width:18px;height:18px;margin-bottom:-2px"></i></button>
             </form>
         `;
         document.body.appendChild(win);
@@ -293,7 +293,7 @@
             if (messages.length === 0) {
                 container.innerHTML = `
                     <div style="text-align:center;padding:28px 10px;color:rgba(255,255,255,0.5);font-size:0.82rem">
-                        <div style="font-size:2rem;margin-bottom:6px">👋</div>
+                        <div style="font-size:2rem;margin-bottom:6px"><i data-lucide="hand" style="width:32px;height:32px;margin:auto"></i></div>
                         Halo <strong>${escapeHtml(currentUser ? currentUser.username : 'User')}</strong>! Ada yang bisa kami bantu seputar pesanan atau akun game Anda?
                     </div>
                 `;
@@ -333,10 +333,10 @@
                     // Incoming (Admin) -> LEFT
                     return `
                         <div class="nex-row nex-row-in">
-                            <div class="nex-avatar-mini">🛡️</div>
+                            <div class="nex-avatar-mini"><i data-lucide="shield" style="width:18px;height:18px"></i></div>
                             <div class="nex-bubble-container">
                                 <div style="font-size:0.7rem;font-weight:700;color:#00d2ff;margin-bottom:3px;display:flex;align-items:center;gap:4px">
-                                    🛡️ Admin NexPlay
+                                    <i data-lucide="shield" style="width:18px;height:18px"></i> Admin NexPlay
                                 </div>
                                 <div class="nex-bubble">
                                     ${escapeHtml(m.message)}
