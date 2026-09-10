@@ -381,6 +381,96 @@ function createFallbackDb() {
                 return [{ columns: cols, values }];
             }
 
+            // Reviews
+            if (sql.includes('FROM reviews')) {
+                let filtered = reviews;
+                if (params && params.length && sql.includes('product_id = ?')) {
+                    filtered = reviews.filter(r => r.product_id == params[0]);
+                }
+                const cols = ['id', 'user_id', 'product_id', 'order_id', 'rating', 'comment', 'is_anonymous', 'created_at', 'username', 'avatar'];
+                const values = filtered.map(r => {
+                    const u = users.find(x => x.id == r.user_id) || {};
+                    const uname = r.is_anonymous ? (u.username ? u.username[0] + '***' : 'A***') : (u.username || 'User');
+                    return [r.id, r.user_id, r.product_id, r.order_id, r.rating, r.comment, r.is_anonymous || 0, r.created_at, uname, u.avatar || ''];
+                });
+                return [{ columns: cols, values }];
+            }
+
+            // Chat unread count
+            if (sql.includes('COUNT(*) as count FROM chat_messages') || (sql.includes('FROM chat_messages') && sql.includes('COUNT(*)'))) {
+                let unread = chatMessages.filter(m => m.receiver_id == params[0] && !m.is_read).length;
+                return [{ columns: ['count'], values: [[unread]] }];
+            }
+
+            // Chat conversations
+            if (sql.includes('FROM chat_messages') && sql.includes('sender_id = ? OR receiver_id = ?')) {
+                const uid = params[0];
+                const otherUserIds = new Set();
+                chatMessages.forEach(m => {
+                    if (m.sender_id == uid) otherUserIds.add(m.receiver_id);
+                    if (m.receiver_id == uid) otherUserIds.add(m.sender_id);
+                });
+                const convos = Array.from(otherUserIds).map(otherId => {
+                    const otherUser = users.find(u => u.id == otherId) || {};
+                    const thread = chatMessages.filter(m => (m.sender_id == uid && m.receiver_id == otherId) || (m.sender_id == otherId && m.receiver_id == uid));
+                    const lastMsg = thread[thread.length - 1] || {};
+                    const unreadCount = thread.filter(m => m.sender_id == otherId && m.receiver_id == uid && !m.is_read).length;
+                    return {
+                        other_user_id: otherId,
+                        other_username: otherUser.username || 'User',
+                        other_role: otherUser.role || 'user',
+                        other_avatar: otherUser.avatar || '',
+                        last_message: lastMsg.message || '',
+                        last_message_time: lastMsg.created_at || '',
+                        unread_count: unreadCount
+                    };
+                });
+                const cols = ['other_user_id', 'other_username', 'other_role', 'other_avatar', 'last_message', 'last_message_time', 'unread_count'];
+                const values = convos.map(c => cols.map(k => c[k]));
+                return [{ columns: cols, values }];
+            }
+
+            // Chat messages between two users
+            if (sql.includes('FROM chat_messages')) {
+                let filtered = chatMessages;
+                if (params && params.length >= 2) {
+                    const u1 = params[0], u2 = params[1];
+                    filtered = chatMessages.filter(m => (m.sender_id == u1 && m.receiver_id == u2) || (m.sender_id == u2 && m.receiver_id == u1));
+                }
+                const cols = ['id', 'sender_id', 'receiver_id', 'message', 'is_read', 'created_at', 'sender_name', 'sender_role'];
+                const values = filtered.map(m => {
+                    const s = users.find(u => u.id == m.sender_id) || {};
+                    return [m.id, m.sender_id, m.receiver_id, m.message, m.is_read ? 1 : 0, m.created_at, s.username || 'User', s.role || 'user'];
+                });
+                return [{ columns: cols, values }];
+            }
+
+            // can-review
+            if (sql.includes('SELECT o.id as order_id FROM orders') || (sql.includes('order_id') && sql.includes('JOIN order_items'))) {
+                const uid = params[0];
+                const pid = params[1];
+                const eligibleOrder = orders.find(o => {
+                    if (o.user_id != uid || o.payment_status !== 'success') return false;
+                    const hasItem = orderItems.some(oi => oi.order_id == o.id && oi.product_id == pid);
+                    if (!hasItem) return false;
+                    const alreadyReviewed = reviews.some(r => r.order_id == o.id && r.product_id == pid && r.user_id == uid);
+                    return !alreadyReviewed;
+                });
+                if (eligibleOrder) {
+                    return [{ columns: ['order_id'], values: [[eligibleOrder.id]] }];
+                }
+                return [];
+            }
+
+            // spending-stats
+            if (sql.includes('SELECT o.id, o.total_amount, o.created_at FROM orders')) {
+                const uid = params[0];
+                const filtered = orders.filter(o => o.user_id == uid && o.payment_status === 'success');
+                const cols = ['id', 'total_amount', 'created_at'];
+                const values = filtered.map(o => [o.id, o.total_amount, o.created_at]);
+                return [{ columns: cols, values }];
+            }
+
             return [];
         },
 
@@ -528,8 +618,25 @@ function createFallbackDb() {
                     order_id: params[2],
                     rating: params[3],
                     comment: params[4],
+                    is_anonymous: params[5] || 0,
                     created_at: new Date().toISOString()
                 });
+            } else if (sql.startsWith('INSERT INTO chat_messages')) {
+                chatMessages.push({
+                    id: chatMessages.length + 1,
+                    sender_id: params[0],
+                    receiver_id: params[1],
+                    message: params[2],
+                    is_read: 0,
+                    created_at: new Date().toISOString()
+                });
+            } else if (sql.startsWith('UPDATE chat_messages')) {
+                if (sql.includes('is_read = 1')) {
+                    const sender = params[0], receiver = params[1];
+                    chatMessages.forEach(m => {
+                        if (m.sender_id == sender && m.receiver_id == receiver) m.is_read = 1;
+                    });
+                }
             }
         },
 
@@ -547,16 +654,29 @@ async function initDatabase() {
             throw new Error('sql.js module is not loaded');
         }
 
-        let SQL;
+        let sqlJsWasmDir = null;
+        try {
+            sqlJsWasmDir = path.dirname(require.resolve('sql.js'));
+        } catch (e) {}
+
         const possibleWasm = [
             path.join(__dirname, 'sql-wasm.wasm'),
+            path.join(__dirname, 'database', 'sql-wasm.wasm'),
+            path.join(__dirname, 'api', 'sql-wasm.wasm'),
             path.join(__dirname, '..', 'sql-wasm.wasm'),
+            path.join(__dirname, '..', 'database', 'sql-wasm.wasm'),
             path.join(__dirname, '..', 'api', 'sql-wasm.wasm'),
             path.join(process.cwd(), 'sql-wasm.wasm'),
-            path.join(process.cwd(), 'api', 'sql-wasm.wasm'),
             path.join(process.cwd(), 'database', 'sql-wasm.wasm'),
-            path.join(path.dirname(require.resolve('sql.js')), 'sql-wasm.wasm')
+            path.join(process.cwd(), 'api', 'sql-wasm.wasm'),
+            '/var/task/sql-wasm.wasm',
+            '/var/task/database/sql-wasm.wasm',
+            '/var/task/api/sql-wasm.wasm'
         ];
+        if (sqlJsWasmDir) {
+            possibleWasm.push(path.join(sqlJsWasmDir, 'sql-wasm.wasm'));
+            possibleWasm.push(path.join(sqlJsWasmDir, '..', 'sql-wasm.wasm'));
+        }
 
         let wasmBinary = null;
         for (const p of possibleWasm) {
@@ -571,6 +691,7 @@ async function initDatabase() {
             }
         }
 
+        let SQL;
         if (wasmBinary) {
             SQL = await initSqlJs({ wasmBinary });
         } else {
@@ -578,13 +699,27 @@ async function initDatabase() {
             if (existingWasm) {
                 SQL = await initSqlJs({ locateFile: () => existingWasm });
             } else {
-                SQL = await initSqlJs();
+                throw new Error('SQLite WASM binary not found in filesystem');
             }
         }
 
         // On Vercel, copy persistent initial database into writable /tmp
         if (IS_VERCEL && !fs.existsSync(TMP_DB_PATH)) {
-            const seedSource = [ROOT_DB_PATH, API_DB_PATH, CWD_DB_PATH].find(p => fs.existsSync(p));
+            const seedSources = [
+                ROOT_DB_PATH,
+                API_DB_PATH,
+                CWD_DB_PATH,
+                path.join(__dirname, 'database.sqlite'),
+                path.join(__dirname, '..', 'database.sqlite'),
+                path.join(__dirname, 'database', 'database.sqlite'),
+                path.join(process.cwd(), 'database.sqlite'),
+                path.join(process.cwd(), 'api', 'database.sqlite'),
+                path.join(process.cwd(), 'database', 'database.sqlite'),
+                '/var/task/database.sqlite',
+                '/var/task/api/database.sqlite',
+                '/var/task/database/database.sqlite'
+            ];
+            const seedSource = seedSources.find(p => fs.existsSync(p));
             if (seedSource) {
                 try {
                     fs.copyFileSync(seedSource, TMP_DB_PATH);
@@ -595,7 +730,18 @@ async function initDatabase() {
             }
         }
 
-        const candidateDbPaths = [DB_PATH, ROOT_DB_PATH, API_DB_PATH, CWD_DB_PATH];
+        const candidateDbPaths = [
+            DB_PATH,
+            ROOT_DB_PATH,
+            API_DB_PATH,
+            CWD_DB_PATH,
+            path.join(__dirname, 'database.sqlite'),
+            path.join(__dirname, '..', 'database.sqlite'),
+            path.join(process.cwd(), 'database.sqlite'),
+            path.join(process.cwd(), 'api', 'database.sqlite'),
+            '/var/task/database.sqlite',
+            '/var/task/api/database.sqlite'
+        ];
         const existingDbPath = candidateDbPaths.find(p => fs.existsSync(p));
 
         if (existingDbPath) {

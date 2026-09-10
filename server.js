@@ -8,6 +8,14 @@ const { initDatabase } = require('./database/init');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Safety handlers for serverless environments
+process.on('unhandledRejection', (reason) => {
+    console.warn('⚡ Caught unhandledRejection:', reason);
+});
+process.on('uncaughtException', (err) => {
+    console.error('⚡ Caught uncaughtException:', err);
+});
+
 // Trust proxy on Vercel / reverse proxies
 if (process.env.VERCEL) {
     app.set('trust proxy', 1);
@@ -105,6 +113,15 @@ app.get('/', (req, res) => {
         return res.sendFile(rootIndex);
     }
     res.send('NexPlay Entertainment');
+});
+
+// API Healthcheck
+app.get(['/api', '/api/health'], (req, res) => {
+    res.json({
+        status: 'ok',
+        service: 'NexPlay API',
+        timestamp: new Date().toISOString()
+    });
 });
 
 // Routes (supports both /api/prefix and stripped /prefix)
