@@ -24,9 +24,41 @@
 
     <main class="main-content">
         <div class="container" style="padding-top:40px;padding-bottom:60px">
-            <div class="page-header">
+            <div class="page-header" style="margin-bottom:24px">
                 <h1>📦 Pesanan <span class="text-gradient">Saya</span></h1>
-                <p>Riwayat semua transaksi kamu di NexPlay</p>
+                <p>Riwayat semua transaksi dan pengeluaran kamu di NexPlay</p>
+            </div>
+
+            <!-- Spending Summary Cards -->
+            <div id="spending-summary-container" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:16px; margin-bottom:32px">
+                <div class="glass-card" style="padding:16px 20px; display:flex; align-items:center; gap:14px">
+                    <div style="font-size:1.8rem; background:rgba(0, 210, 255, 0.15); width:46px; height:46px; border-radius:12px; display:flex; align-items:center; justify-content:center">📅</div>
+                    <div>
+                        <div style="font-size:0.78rem; color:var(--text-muted); font-weight:600">Pengeluaran Hari Ini</div>
+                        <div id="spend-daily" style="font-size:1.1rem; font-weight:700; color:var(--text-primary); margin-top:2px">Rp 0</div>
+                    </div>
+                </div>
+                <div class="glass-card" style="padding:16px 20px; display:flex; align-items:center; gap:14px">
+                    <div style="font-size:1.8rem; background:rgba(121, 40, 202, 0.15); width:46px; height:46px; border-radius:12px; display:flex; align-items:center; justify-content:center">📆</div>
+                    <div>
+                        <div style="font-size:0.78rem; color:var(--text-muted); font-weight:600">Pengeluaran Minggu Ini</div>
+                        <div id="spend-weekly" style="font-size:1.1rem; font-weight:700; color:var(--text-primary); margin-top:2px">Rp 0</div>
+                    </div>
+                </div>
+                <div class="glass-card" style="padding:16px 20px; display:flex; align-items:center; gap:14px">
+                    <div style="font-size:1.8rem; background:rgba(255, 71, 87, 0.15); width:46px; height:46px; border-radius:12px; display:flex; align-items:center; justify-content:center">🗓️</div>
+                    <div>
+                        <div style="font-size:0.78rem; color:var(--text-muted); font-weight:600">Pengeluaran Bulan Ini</div>
+                        <div id="spend-monthly" style="font-size:1.1rem; font-weight:700; color:var(--text-primary); margin-top:2px">Rp 0</div>
+                    </div>
+                </div>
+                <div class="glass-card" style="padding:16px 20px; display:flex; align-items:center; gap:14px">
+                    <div style="font-size:1.8rem; background:rgba(0, 184, 148, 0.15); width:46px; height:46px; border-radius:12px; display:flex; align-items:center; justify-content:center">💰</div>
+                    <div>
+                        <div style="font-size:0.78rem; color:var(--text-muted); font-weight:600">Total Pengeluaran</div>
+                        <div id="spend-total" style="font-size:1.1rem; font-weight:700; color:var(--accent-green); margin-top:2px">Rp 0</div>
+                    </div>
+                </div>
             </div>
 
             <div id="orders-content">
@@ -36,32 +68,88 @@
     </main>
 
     <!-- Review Modal -->
-    <div class="payment-modal" id="review-modal">
-        <div class="glass-card" style="padding:24px; max-width:400px; width:100%; position:relative;">
-            <button onclick="document.getElementById('review-modal').classList.remove('show')" style="position:absolute;top:10px;right:10px;background:none;border:none;color:white;font-size:1.2rem;cursor:pointer">✕</button>
-            <h3 style="margin-bottom:16px">Ulas Produk</h3>
+    <div class="payment-modal" id="review-modal" onclick="if(event.target===this)closeReviewModal()">
+        <div class="glass-card" style="padding:24px; max-width:460px; width:100%; position:relative;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+                <div>
+                    <h3 style="margin:0 0 4px 0" id="review-title">⭐ Ulas Produk</h3>
+                    <p style="font-size:0.82rem;color:var(--text-muted);margin:0" id="review-subtitle">Beri penilaian untuk pesanan ini</p>
+                </div>
+                <button type="button" onclick="closeReviewModal()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:white;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;cursor:pointer" title="Tutup Modal">✕</button>
+            </div>
             <form id="review-form">
                 <input type="hidden" id="review-product-id">
                 <input type="hidden" id="review-order-id">
-                <div style="margin-bottom:12px">
-                    <label style="display:block;margin-bottom:8px">Rating (1-5)</label>
-                    <input type="number" id="review-rating" class="form-control" min="1" max="5" value="5" required>
+                <div style="margin-bottom:14px">
+                    <label style="display:block;margin-bottom:8px;font-size:0.88rem;font-weight:600">Rating (1 - 5 Bintang) <span style="color:var(--accent-orange)">*</span></label>
+                    <select id="review-rating" class="form-control" required>
+                        <option value="5">⭐⭐⭐⭐⭐ (5/5 Sempurna)</option>
+                        <option value="4">⭐⭐⭐⭐ (4/5 Sangat Bagus)</option>
+                        <option value="3">⭐⭐⭐ (3/5 Cukup)</option>
+                        <option value="2">⭐⭐ (2/5 Kurang)</option>
+                        <option value="1">⭐ (1/5 Sangat Buruk)</option>
+                    </select>
                 </div>
-                <div style="margin-bottom:16px">
-                    <label style="display:block;margin-bottom:8px">Ulasan (Opsional)</label>
-                    <textarea id="review-comment" class="form-control" rows="3"></textarea>
+                <div style="margin-bottom:14px">
+                    <label style="display:block;margin-bottom:8px;font-size:0.88rem;font-weight:600">Ulasan Produk <span style="color:var(--accent-orange)">* (Wajib Diisi)</span></label>
+                    <textarea id="review-comment" class="form-control" rows="3" required placeholder="Tuliskan ulasan Anda mengenai produk ini (wajib diisi)..."></textarea>
                 </div>
-                <button type="submit" class="btn btn-primary" style="width:100%">Kirim Ulasan</button>
+                <div style="margin-bottom:20px">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.88rem;color:var(--text-secondary)">
+                        <input type="checkbox" id="review-anonymous" style="width:16px;height:16px;accent-color:var(--accent-cyan);cursor:pointer">
+                        <span>🎭 Samarkan nama saya (Ulasan Anonim)</span>
+                    </label>
+                </div>
+                <div style="display:flex;gap:10px;justify-content:flex-end">
+                    <button type="button" class="btn btn-secondary" onclick="closeReviewModal()">✕</button>
+                    <button type="submit" class="btn btn-primary">⭐ Kirim Ulasan</button>
+                </div>
             </form>
         </div>
     </div>
 
     <script src="/js/app.js"></script>
     <script>
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function toggleAccountDetails(itemId) {
+            const box = document.getElementById(`acc-box-${itemId}`);
+            const btn = document.getElementById(`toggle-acc-btn-${itemId}`);
+            if (!box) return;
+
+            if (box.style.display === 'none' || !box.style.display) {
+                box.style.display = 'block';
+                if (btn) btn.innerHTML = '🙈 Tutup Akun';
+            } else {
+                box.style.display = 'none';
+                if (btn) btn.innerHTML = '👁️ Buka Akun';
+            }
+        }
+
+        async function loadSpending() {
+            try {
+                const data = await API.get('/api/orders/user/spending');
+                if (data.spending) {
+                    document.getElementById('spend-daily').textContent = formatRupiah(data.spending.daily || 0);
+                    document.getElementById('spend-weekly').textContent = formatRupiah(data.spending.weekly || 0);
+                    document.getElementById('spend-monthly').textContent = formatRupiah(data.spending.monthly || 0);
+                    document.getElementById('spend-total').textContent = formatRupiah(data.spending.total || 0);
+                }
+            } catch (err) {
+                console.error('Failed to load spending:', err);
+            }
+        }
+
         async function loadOrders() {
             try {
                 const data = await API.get('/api/orders');
                 renderOrders(data.orders);
+                loadSpending();
             } catch (err) {
                 if (err.message.includes('Unauthorized') || err.message.includes('login')) {
                     document.getElementById('orders-content').innerHTML = `
@@ -72,8 +160,23 @@
                             <a href="/login.html" class="btn btn-primary">Login</a>
                         </div>
                     `;
+                    document.getElementById('spending-summary-container').style.display = 'none';
                 }
             }
+        }
+
+        function copyDeliveryData(btn, text) {
+            navigator.clipboard.writeText(text).then(() => {
+                const orig = btn.innerHTML;
+                btn.innerHTML = '✅ Tersalin!';
+                btn.classList.add('btn-primary');
+                setTimeout(() => {
+                    btn.innerHTML = orig;
+                    btn.classList.remove('btn-primary');
+                }, 2000);
+            }).catch(() => {
+                alert(text);
+            });
         }
 
         function renderOrders(orders) {
@@ -108,15 +211,46 @@
 
                     <div class="order-items">
                         ${(order.items || []).map(item => `
-                            <div class="order-item" style="flex-wrap:wrap">
-                                ${item.image_url ? `<img src="${item.image_url}" alt="${item.name}" style="width:44px;height:44px;border-radius:6px;object-fit:cover;border:var(--border-light)" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">` : ''}
-                                <span style="${item.image_url ? 'display:none;' : ''}font-size:1.5rem">${getCategoryIcon(item.category)}</span>
-                                <div style="flex:1;min-width:150px">
-                                    <div style="font-weight:600;font-size:0.9rem;color:var(--text-primary)">${item.name}</div>
-                                    <div style="font-size:0.8rem;color:var(--text-muted)">x${item.quantity}</div>
+                            <div class="order-item" style="flex-wrap:wrap;border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:14px;margin-bottom:14px">
+                                <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:220px">
+                                    ${item.image_url ? `<img src="${item.image_url}" alt="${item.name}" style="width:44px;height:44px;border-radius:6px;object-fit:cover;border:var(--border-light)" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">` : ''}
+                                    <span style="${item.image_url ? 'display:none;' : ''}font-size:1.5rem">${getCategoryIcon(item.category)}</span>
+                                    <div>
+                                        <div style="font-weight:600;font-size:0.9rem;color:var(--text-primary)">${item.name}</div>
+                                        <div style="font-size:0.8rem;color:var(--text-muted)">x${item.quantity}</div>
+                                    </div>
                                 </div>
-                                <div style="font-weight:700;color:var(--text-primary);margin-right:12px">${formatRupiah(item.price * item.quantity)}</div>
-                                ${order.payment_status === 'success' ? `<button class="btn btn-secondary btn-sm" onclick="openReviewModal(${item.product_id}, ${order.id})">⭐ Ulas Produk</button>` : ''}
+
+                                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                                    <div style="font-weight:700;color:var(--text-primary);margin-right:4px">${formatRupiah(item.price * item.quantity)}</div>
+                                    
+                                    ${order.payment_status === 'success' && item.delivery_data ? `
+                                        <button class="btn btn-secondary btn-sm" id="toggle-acc-btn-${item.id}" onclick="toggleAccountDetails(${item.id})" style="padding:4px 10px;font-size:0.78rem">
+                                            👁️ Buka Akun
+                                        </button>
+                                    ` : ''}
+
+                                    ${order.payment_status === 'success' ? (
+                                        item.has_reviewed ? 
+                                            `<span style="font-size:0.8rem;background:rgba(0,184,148,0.15);color:var(--accent-green);padding:4px 8px;border-radius:4px;font-weight:600">✅ Sudah Diulas</span>` :
+                                            `<button class="btn btn-primary btn-sm" onclick="openReviewModal(${item.product_id}, ${order.id}, '${(item.name || '').replace(/'/g, "\\'")}')" style="padding:4px 10px;font-size:0.78rem">⭐ Ulas Produk</button>`
+                                    ) : ''}
+                                </div>
+
+                                ${order.payment_status === 'success' && item.delivery_data ? `
+                                    <div id="acc-box-${item.id}" style="display:none;width:100%;margin-top:12px;padding:14px 16px;background:rgba(0, 210, 255, 0.07);border:1px dashed rgba(0, 210, 255, 0.35);border-radius:10px;animation:fadeIn 0.2s ease">
+                                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                                            <span style="font-size:0.84rem;font-weight:700;color:var(--accent-cyan);display:flex;align-items:center;gap:6px">
+                                                🔑 Detail Akun / Data Akses Produk:
+                                            </span>
+                                            <div style="display:flex;gap:8px">
+                                                <button class="btn btn-secondary btn-sm" onclick="copyDeliveryData(this, ${JSON.stringify(item.delivery_data)})" style="padding:3px 10px;font-size:0.75rem">📋 Salin Data</button>
+                                                <button class="btn btn-secondary btn-sm" onclick="toggleAccountDetails(${item.id})" style="padding:3px 8px;font-size:0.75rem" title="Tutup Detail Akun">✕ Tutup</button>
+                                            </div>
+                                        </div>
+                                        <pre style="margin:0;font-family:monospace;white-space:pre-wrap;font-size:0.85rem;color:var(--text-primary);background:rgba(0,0,0,0.45);padding:12px;border-radius:8px;user-select:all">${escapeHtml(item.delivery_data)}</pre>
+                                    </div>
+                                ` : ''}
                             </div>
                         `).join('')}
                     </div>
@@ -133,7 +267,7 @@
                                 <button class="btn btn-primary btn-sm" onclick="payOrder(${order.id}, '${order.payment_method}')">Bayar Sekarang</button>
                             ` : ''}
                             ${order.payment_status === 'processing' ? `
-                                <span style="font-size:0.85rem;color:var(--accent-orange);font-weight:600">⏳ Sedang Diverifikasi Admin</span>
+                                <span style="font-size:0.85rem;color:var(--accent-orange);font-weight:600">⏳ Sedang Diproses & Diverifikasi Admin</span>
                             ` : ''}
                             <div class="order-total">Total: ${formatRupiah(order.total_amount)}</div>
                         </div>
@@ -142,25 +276,53 @@
             `).join('');
         }
 
-        function openReviewModal(productId, orderId) {
+        function openReviewModal(productId, orderId, productName) {
             document.getElementById('review-product-id').value = productId;
             document.getElementById('review-order-id').value = orderId;
-            document.getElementById('review-rating').value = 5;
+            document.getElementById('review-subtitle').textContent = productName ? `Ulas: ${productName}` : 'Beri penilaian untuk pesanan ini';
+            document.getElementById('review-rating').value = "5";
             document.getElementById('review-comment').value = '';
+            document.getElementById('review-anonymous').checked = false;
             document.getElementById('review-modal').classList.add('show');
+            setTimeout(() => {
+                document.getElementById('review-comment').focus();
+            }, 100);
         }
+
+        function closeReviewModal() {
+            document.getElementById('review-modal').classList.remove('show');
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeReviewModal();
+            }
+        });
 
         document.getElementById('review-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const productId = document.getElementById('review-product-id').value;
             const orderId = document.getElementById('review-order-id').value;
             const rating = parseInt(document.getElementById('review-rating').value);
-            const comment = document.getElementById('review-comment').value;
+            const comment = document.getElementById('review-comment').value.trim();
+            const isAnonymous = document.getElementById('review-anonymous').checked;
+
+            if (!comment) {
+                showToast('Ulasan wajib diisi! Mohon tulis ulasan produk Anda.', 'warning');
+                document.getElementById('review-comment').focus();
+                return;
+            }
 
             try {
-                await API.post(`/api/products/${productId}/reviews`, { rating, comment, order_id: orderId });
-                showToast('Ulasan berhasil dikirim!', 'success');
-                document.getElementById('review-modal').classList.remove('show');
+                await API.post(`/api/products/${productId}/reviews`, { 
+                    rating, 
+                    comment, 
+                    order_id: parseInt(orderId),
+                    is_anonymous: isAnonymous
+                });
+                showToast('Ulasan berhasil dikirim! ⭐', 'success');
+                closeReviewModal();
+                loadOrders();
             } catch (err) {
                 showToast(err.message, 'error');
             }

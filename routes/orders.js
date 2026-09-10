@@ -180,6 +180,8 @@ router.get('/', isAuthenticated, (req, res) => {
                 order.items = itemsResult[0].values.map(row => {
                     const item = {};
                     itemColumns.forEach((col, i) => { item[col] = row[i]; });
+                    const reviewRes = db.exec('SELECT id FROM reviews WHERE user_id = ? AND product_id = ? AND order_id = ?', [order.user_id, item.product_id, order.id]);
+                    item.has_reviewed = (reviewRes.length > 0 && reviewRes[0].values.length > 0);
                     return item;
                 });
             } else {
@@ -198,8 +200,12 @@ router.get('/', isAuthenticated, (req, res) => {
 router.get('/:id', isAuthenticated, (req, res) => {
     try {
         const db = getDb();
-        const result = db.exec('SELECT * FROM orders WHERE id = ? AND (user_id = ? OR ? = "admin")',
-            [req.params.id, req.session.userId, req.session.role]);
+        const result = db.exec(`
+            SELECT o.*, u.username, u.email as user_email
+            FROM orders o
+            LEFT JOIN users u ON o.user_id = u.id
+            WHERE o.id = ? AND (o.user_id = ? OR ? = "admin")
+        `, [req.params.id, req.session.userId, req.session.role]);
 
         if (result.length === 0 || result[0].values.length === 0) {
             return res.status(404).json({ error: 'Order not found.' });
@@ -374,7 +380,7 @@ router.get('/seller/orders', isAuthenticated, (req, res) => {
         const sellerId = req.session.userId;
 
         const result = db.exec(`
-            SELECT oi.id as item_id, oi.order_id, oi.product_id, oi.quantity, oi.price, oi.seller_commission, oi.fulfillment_status,
+            SELECT oi.id as item_id, oi.order_id, oi.product_id, oi.quantity, oi.price, oi.seller_commission, oi.fulfillment_status, oi.delivery_data,
                    p.name as product_name, p.image_url, p.category,
                    o.order_code, o.payment_status, o.created_at, u.username as buyer_username
             FROM order_items oi
@@ -403,13 +409,13 @@ router.get('/seller/orders', isAuthenticated, (req, res) => {
     }
 });
 
-// PUT /api/orders/seller/ship-item - Seller sends product to admin
+// PUT /api/orders/seller/ship-item - Seller sends product and delivery data to admin
 router.put('/seller/ship-item', isAuthenticated, (req, res) => {
     try {
         if (req.session.role !== 'seller') {
             return res.status(403).json({ error: 'Forbidden. Seller access required.' });
         }
-        const { item_id } = req.body;
+        const { item_id, delivery_data } = req.body;
         const db = getDb();
         const sellerId = req.session.userId;
 
@@ -418,12 +424,52 @@ router.put('/seller/ship-item', isAuthenticated, (req, res) => {
             return res.status(404).json({ error: 'Item pesanan tidak ditemukan atau bukan milik Anda.' });
         }
 
-        db.run("UPDATE order_items SET fulfillment_status = 'dikirim_ke_admin' WHERE id = ? AND seller_id = ?", [item_id, sellerId]);
+        db.run("UPDATE order_items SET fulfillment_status = 'dikirim_ke_admin', delivery_data = ? WHERE id = ? AND seller_id = ?",
+            [delivery_data || '', item_id, sellerId]);
         saveDatabase();
 
-        res.json({ message: 'Produk berhasil dikirim ke Admin untuk verifikasi! 🚀' });
+        res.json({ message: 'Produk & kredensial berhasil dikirim ke Admin untuk verifikasi! 🚀' });
     } catch (err) {
         console.error('Ship item error:', err);
+        res.status(500).json({ error: 'Internal server error.' });
+    }
+});
+
+// PUT /api/orders/items/:id/delivery - Admin update delivery data
+router.put('/items/:id/delivery', isAdmin, (req, res) => {
+    try {
+        const { delivery_data } = req.body;
+        const db = getDb();
+        db.run('UPDATE order_items SET delivery_data = ? WHERE id = ?', [delivery_data || '', req.params.id]);
+        saveDatabase();
+        res.json({ message: 'Data akses produk berhasil diperbarui! ✅' });
+    } catch (err) {
+        console.error('Update delivery data error:', err);
+        res.status(500).json({ error: 'Internal server error.' });
+    }
+});
+
+// GET /api/orders/user/spending - User spending breakdown (daily, weekly, monthly, total)
+router.get('/user/spending', isAuthenticated, (req, res) => {
+    try {
+        const db = getDb();
+        const userId = req.session.userId;
+
+        const daily = db.exec(`SELECT COALESCE(SUM(total_amount), 0) FROM orders WHERE user_id = ? AND payment_status = 'success' AND date(created_at) = date('now', 'localtime')`, [userId]);
+        const weekly = db.exec(`SELECT COALESCE(SUM(total_amount), 0) FROM orders WHERE user_id = ? AND payment_status = 'success' AND date(created_at) >= date('now', '-7 days', 'localtime')`, [userId]);
+        const monthly = db.exec(`SELECT COALESCE(SUM(total_amount), 0) FROM orders WHERE user_id = ? AND payment_status = 'success' AND strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now', 'localtime')`, [userId]);
+        const total = db.exec(`SELECT COALESCE(SUM(total_amount), 0) FROM orders WHERE user_id = ? AND payment_status = 'success'`, [userId]);
+
+        res.json({
+            spending: {
+                daily: daily[0] && daily[0].values.length > 0 ? daily[0].values[0][0] : 0,
+                weekly: weekly[0] && weekly[0].values.length > 0 ? weekly[0].values[0][0] : 0,
+                monthly: monthly[0] && monthly[0].values.length > 0 ? monthly[0].values[0][0] : 0,
+                total: total[0] && total[0].values.length > 0 ? total[0].values[0][0] : 0
+            }
+        });
+    } catch (err) {
+        console.error('Get spending error:', err);
         res.status(500).json({ error: 'Internal server error.' });
     }
 });

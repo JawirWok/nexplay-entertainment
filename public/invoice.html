@@ -98,7 +98,7 @@
 
                 document.getElementById('inv-no').textContent = order.order_code;
                 document.getElementById('inv-date').textContent = new Date(order.created_at).toLocaleString('id-ID');
-                document.getElementById('inv-user').textContent = 'User #' + order.user_id; // Idealy username, but ok
+                document.getElementById('inv-user').textContent = order.username ? `${order.username} (ID: #${order.user_id})` : ('User #' + order.user_id);
                 document.getElementById('inv-method').textContent = (order.payment_method || '').toUpperCase();
                 
                 document.getElementById('inv-status').textContent = order.payment_status.toUpperCase();

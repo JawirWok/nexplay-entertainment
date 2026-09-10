@@ -133,10 +133,15 @@
                 
                 let html = '<div style="display:flex;flex-direction:column;gap:15px;margin-top:15px;">';
                 for (const r of data.reviews) {
+                    const isAnon = r.is_anonymous === 1 || r.is_anonymous === true;
                     html += `
                         <div class="glass-card" style="padding:15px">
-                            <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-                                <strong>${r.username || 'User'}</strong>
+                            <div style="display:flex;justify-content:space-between;margin-bottom:8px;align-items:center">
+                                <div style="display:flex;align-items:center;gap:6px">
+                                    <span>${isAnon ? '🎭' : '👤'}</span>
+                                    <strong>${r.username || 'User'}</strong>
+                                    ${isAnon ? '<span style="font-size:0.72rem;background:rgba(255,255,255,0.08);padding:1px 6px;border-radius:4px;color:var(--text-muted)">Anonim</span>' : ''}
+                                </div>
                                 <span style="color:#f39c12">⭐ ${r.rating}/5</span>
                             </div>
                             <p style="margin:0;color:var(--text-secondary)">${r.comment || '-'}</p>

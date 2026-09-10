@@ -30,6 +30,7 @@
                     <li><a href="/admin/vouchers.html" class="sidebar-link">🎟️ Voucher Diskon</a></li>
                     <li><a href="/admin/revenue.html" class="sidebar-link">💰 Laporan Omset</a></li>
                     <li><a href="/admin/users.html" class="sidebar-link">👥 Users</a></li>
+                    <li><a href="/admin/chat.html" class="sidebar-link">💬 Live Chat</a></li>
                 </ul>
                 <div class="sidebar-title">Quick Links</div>
                 <ul class="sidebar-nav">
@@ -40,7 +41,7 @@
 
             <div class="admin-content">
                 <h2 style="margin-bottom:8px">🧾 Kelola <span class="text-gradient">Transaksi</span></h2>
-                <p style="color:var(--text-secondary);margin-bottom:32px">Pantau verifikasi pesanan, pengiriman seller, dan selesaikan transaksi</p>
+                <p style="color:var(--text-secondary);margin-bottom:32px">Pantau verifikasi pesanan, data akun dari seller, dan selesaikan transaksi</p>
 
                 <div class="glass-card" style="padding:0;overflow-x:auto">
                     <table class="data-table">
@@ -65,12 +66,32 @@
         </div>
     </main>
 
+    <!-- Modal Detail Pesanan & Data Pengiriman -->
+    <div class="payment-modal" id="order-detail-modal">
+        <div class="glass-card" style="padding:24px; max-width:680px; width:100%; position:relative; max-height:90vh; overflow-y:auto">
+            <button onclick="closeDetailModal()" style="position:absolute;top:12px;right:14px;background:none;border:none;color:white;font-size:1.3rem;cursor:pointer">✕</button>
+            <h3 style="margin-bottom:4px" id="detail-order-code">Detail Pesanan</h3>
+            <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:18px" id="detail-order-meta">-</p>
+
+            <div id="detail-items-container" style="display:flex;flex-direction:column;gap:16px;margin-bottom:20px">
+                <!-- Injected via JavaScript -->
+            </div>
+
+            <div style="display:flex;gap:10px;justify-content:flex-end;border-top:1px solid var(--border-color);padding-top:16px" id="detail-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeDetailModal()">Tutup</button>
+            </div>
+        </div>
+    </div>
+
     <script src="/js/app.js"></script>
     <script>
+        let allOrders = [];
+
         async function loadOrders() {
             try {
                 const data = await API.get('/api/orders?all=1');
-                renderOrders(data.orders);
+                allOrders = data.orders || [];
+                renderOrders(allOrders);
             } catch (err) {
                 if (err.message.includes('Unauthorized') || err.message.includes('Forbidden')) {
                     window.location.href = '/login.html';
@@ -125,13 +146,16 @@
                         </td>
                         <td style="font-size:0.85rem;color:var(--text-muted)">${new Date(o.created_at).toLocaleDateString('id-ID')}</td>
                         <td style="text-align:right">
-                            <div style="display:flex;gap:6px;justify-content:flex-end;align-items:center">
+                            <div style="display:flex;gap:6px;justify-content:flex-end;align-items:center;flex-wrap:wrap">
+                                <button class="btn btn-secondary btn-sm" onclick="openOrderDetail(${o.id})" style="padding:4px 8px;font-size:0.78rem">
+                                    🔍 Detail & Akun
+                                </button>
                                 ${o.payment_status === 'processing' ? `
                                     <button class="btn btn-primary btn-sm" onclick="updateStatus(${o.id}, 'success')" style="padding:4px 10px;font-size:0.8rem;white-space:nowrap">
                                         ✅ Selesaikan
                                     </button>
                                 ` : ''}
-                                <select class="form-control" style="width:auto;min-width:115px;font-size:0.8rem;padding:4px 8px"
+                                <select class="form-control" style="width:auto;min-width:110px;font-size:0.8rem;padding:4px 8px"
                                         onchange="updateStatus(${o.id}, this.value)">
                                     <option value="pending" ${o.payment_status === 'pending' ? 'selected' : ''}>⏳ Pending</option>
                                     <option value="processing" ${o.payment_status === 'processing' ? 'selected' : ''}>🔄 Processing</option>
@@ -144,6 +168,83 @@
                     </tr>
                 `;
             }).join('');
+        }
+
+        function openOrderDetail(orderId) {
+            const order = allOrders.find(o => o.id === orderId);
+            if (!order) return;
+
+            document.getElementById('detail-order-code').innerHTML = `🧾 Detail Pesanan: <span class="text-gradient">${order.order_code}</span>`;
+            document.getElementById('detail-order-meta').innerHTML = `
+                Pembeli: <strong>${order.username || 'User #' + order.user_id}</strong> | 
+                Total: <strong>${formatRupiah(order.total_amount)}</strong> | 
+                Status: <span class="order-status status-${order.payment_status}">${order.payment_status}</span>
+            `;
+
+            const container = document.getElementById('detail-items-container');
+            container.innerHTML = (order.items || []).map((item, idx) => {
+                const isSeller = item.seller_id && item.seller_id > 1;
+                return `
+                    <div style="background:var(--bg-secondary);padding:14px;border-radius:10px;border:1px solid var(--border-color)">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+                            <div>
+                                <strong style="font-size:1rem;color:var(--text-primary)">${item.name}</strong>
+                                <div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px">
+                                    Qty: ${item.quantity} × ${formatRupiah(item.price)} | Tipe: ${isSeller ? '🏪 Seller (ID: ' + item.seller_id + ')' : '📦 Platform Direct'}
+                                </div>
+                            </div>
+                            <div>
+                                ${item.fulfillment_status === 'dikirim_ke_admin' ? 
+                                    '<span style="font-size:0.75rem;background:#00b894;color:#fff;padding:2px 8px;border-radius:4px">🟢 Seller Sudah Kirim Data</span>' : 
+                                    (isSeller ? '<span style="font-size:0.75rem;background:#fdcb6e;color:#000;padding:2px 8px;border-radius:4px">⏳ Menunggu Kiriman Seller</span>' : '')
+                                }
+                            </div>
+                        </div>
+
+                        <div style="margin-top:10px">
+                            <label style="display:block;font-size:0.8rem;font-weight:600;margin-bottom:4px;color:var(--accent-cyan)">
+                                🔑 Pesan / Akun / Data Akses Produk untuk User:
+                            </label>
+                            <textarea id="delivery-data-input-${item.id}" class="form-control" rows="3" style="font-size:0.85rem;font-family:monospace;background:rgba(0,0,0,0.3)" placeholder="Belum ada data akun dari seller atau admin...">${item.delivery_data || ''}</textarea>
+                            <div style="display:flex;justify-content:flex-end;margin-top:6px">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="saveItemDeliveryData(${item.id})" style="padding:4px 10px;font-size:0.78rem">
+                                    💾 Simpan Perubahan Data Ini
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            const actionsContainer = document.getElementById('detail-actions');
+            actionsContainer.innerHTML = `
+                <button type="button" class="btn btn-secondary" onclick="closeDetailModal()">Tutup</button>
+                ${order.payment_status === 'processing' ? `
+                    <button type="button" class="btn btn-primary" onclick="updateStatus(${order.id}, 'success'); closeDetailModal();">
+                        ✅ Selesaikan Pesanan & Kirim ke User
+                    </button>
+                ` : ''}
+            `;
+
+            document.getElementById('order-detail-modal').classList.add('show');
+        }
+
+        function closeDetailModal() {
+            document.getElementById('order-detail-modal').classList.remove('show');
+        }
+
+        async function saveItemDeliveryData(itemId) {
+            const input = document.getElementById(`delivery-data-input-${itemId}`);
+            if (!input) return;
+            const deliveryData = input.value;
+
+            try {
+                const res = await API.put(`/api/orders/items/${itemId}/delivery`, { delivery_data: deliveryData });
+                showToast(res.message || 'Data akun berhasil disimpan! ✅', 'success');
+                loadOrders();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
         }
 
         async function updateStatus(orderId, status) {

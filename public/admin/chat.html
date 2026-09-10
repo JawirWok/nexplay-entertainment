@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Admin Live Chat NexPlay - Layanan komunikasi pengguna, penjual, dan admin.">
+    <title>Live Chat — Admin NexPlay</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎮</text></svg>">
+    <style>
+        .chat-container {
+            display: grid;
+            grid-template-columns: 340px 1fr;
+            height: calc(100vh - 180px);
+            min-height: 580px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-card);
+        }
+        @media (max-width: 960px) {
+            .chat-container {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+            .chat-conversations {
+                max-height: 320px;
+            }
+        }
+        .chat-conversations {
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-secondary);
+        }
+        .chat-conv-header {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .chat-conv-list {
+            flex: 1;
+            overflow-y: auto;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        .chat-conv-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            transition: var(--transition-fast);
+        }
+        .chat-conv-item:hover {
+            background: rgba(255,255,255,0.05);
+        }
+        .chat-conv-item.active {
+            background: rgba(0, 210, 255, 0.1);
+            border-left: 4px solid var(--accent-cyan);
+        }
+        .chat-conv-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--bg-tertiary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            flex-shrink: 0;
+            border: 1px solid var(--border-color);
+        }
+        .chat-conv-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .chat-conv-name {
+            font-weight: 700;
+            color: var(--text-primary);
+            font-size: 0.92rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .chat-conv-preview {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-top: 2px;
+        }
+        .chat-unread-badge {
+            background: #ff4757;
+            color: white;
+            font-size: 0.72rem;
+            font-weight: 800;
+            padding: 2px 7px;
+            border-radius: 12px;
+        }
+        .chat-main {
+            display: flex;
+            flex-direction: column;
+            background: #0d111a;
+            position: relative;
+        }
+        .chat-main-header {
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg-secondary);
+        }
+        .chat-messages-area {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            background: radial-gradient(circle at top right, rgba(0, 210, 255, 0.03), transparent 60%);
+        }
+
+        /* Message Row & Distinct Alignment */
+        .msg-row {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            align-items: flex-end;
+        }
+        .msg-row-incoming {
+            justify-content: flex-start;
+        }
+        .msg-row-outgoing {
+            justify-content: flex-end;
+        }
+        .msg-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--bg-tertiary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+            border: 1px solid var(--border-color);
+            margin-bottom: 2px;
+        }
+
+        /* Bubble Styles */
+        .msg-bubble-wrap {
+            max-width: 68%;
+            display: flex;
+            flex-direction: column;
+        }
+        .msg-sender-tag {
+            font-size: 0.72rem;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .msg-row-outgoing .msg-sender-tag {
+            justify-content: flex-end;
+        }
+        .msg-bubble {
+            padding: 11px 16px;
+            border-radius: 16px;
+            font-size: 0.92rem;
+            line-height: 1.45;
+            word-break: break-word;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .msg-row-incoming .msg-bubble {
+            background: rgba(28, 33, 48, 0.95);
+            color: #f1f2f6;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom-left-radius: 3px;
+        }
+        .msg-row-outgoing .msg-bubble {
+            background: linear-gradient(135deg, #00b4d8, #0077b6);
+            color: #ffffff;
+            border-bottom-right-radius: 3px;
+        }
+        .msg-time-status {
+            font-size: 0.68rem;
+            margin-top: 5px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .msg-row-outgoing .msg-time-status {
+            justify-content: flex-end;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        .msg-row-incoming .msg-time-status {
+            justify-content: flex-start;
+            color: var(--text-muted);
+        }
+
+        .chat-input-bar {
+            padding: 14px 20px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 10px;
+            background: var(--bg-secondary);
+        }
+        .chat-empty-state {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            text-align: center;
+            padding: 32px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">
+            <div class="logo-icon">🎮</div>
+            <span>Nex<span class="text-gradient">Play</span></span>
+        </a>
+        <ul class="navbar-nav" id="navbar-nav"><li><a href="/" class="nav-link">🏠 Store</a></li></ul>
+        <button class="mobile-toggle" id="mobile-toggle">☰</button>
+        <div class="nav-actions" id="nav-actions"></div>
+    </nav>
+
+    <main class="main-content">
+        <div class="admin-layout">
+            <aside class="admin-sidebar">
+                <div class="sidebar-title">Dashboard</div>
+                <ul class="sidebar-nav">
+                    <li><a href="/admin/dashboard.html" class="sidebar-link">📊 Overview</a></li>
+                    <li><a href="/admin/products.html" class="sidebar-link">📦 Produk</a></li>
+                    <li><a href="/admin/orders.html" class="sidebar-link">🧾 Transaksi</a></li>
+                    <li><a href="/admin/vouchers.html" class="sidebar-link">🎟️ Voucher Diskon</a></li>
+                    <li><a href="/admin/revenue.html" class="sidebar-link">💰 Laporan Omset</a></li>
+                    <li><a href="/admin/users.html" class="sidebar-link">👥 Users</a></li>
+                    <li><a href="/admin/chat.html" class="sidebar-link active">💬 Live Chat</a></li>
+                </ul>
+                <div class="sidebar-title">Quick Links</div>
+                <ul class="sidebar-nav">
+                    <li><a href="/" class="sidebar-link">🏪 Lihat Store</a></li>
+                    <li><a href="#" class="sidebar-link" onclick="logout()">🚪 Logout</a></li>
+                </ul>
+            </aside>
+
+            <div class="admin-content" style="max-width:1300px">
+                <div style="margin-bottom:20px; display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:12px">
+                    <div>
+                        <h2 style="margin-bottom:4px">💬 Live Chat <span class="text-gradient">NexPlay</span></h2>
+                        <p style="color:var(--text-secondary)">Komunikasi langsung dengan Pengguna (User) dan Penjual (Seller)</p>
+                    </div>
+                    <div style="display:flex; gap:8px">
+                        <button class="btn btn-secondary btn-sm" onclick="loadConversations(true)">🔄 Segarkan</button>
+                    </div>
+                </div>
+
+                <div class="chat-container">
+                    <!-- Sisi Kiri: Daftar Percakapan & Kontak -->
+                    <div class="chat-conversations">
+                        <div class="chat-conv-header">
+                            <input type="text" id="conv-search" class="form-control" placeholder="🔍 Cari kontak/username..." oninput="filterConversations()" style="font-size:0.85rem">
+                            <div style="display:flex; align-items:center; gap:8px">
+                                <select id="start-chat-select" class="form-control" style="font-size:0.8rem; padding:5px 8px" onchange="startChatWithSelected(this.value)">
+                                    <option value="">➕ Mulai Chat dengan User/Seller...</option>
+                                </select>
+                            </div>
+                        </div>
+                        <ul class="chat-conv-list" id="conv-list">
+                            <li style="padding:24px;text-align:center;color:var(--text-muted)">
+                                <div class="loading-spinner"></div>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Sisi Kanan: Area Chat Aktif -->
+                    <div class="chat-main" id="chat-main">
+                        <div class="chat-empty-state" id="chat-empty-view">
+                            <div style="font-size:3.5rem;margin-bottom:12px">💬</div>
+                            <h3 style="color:var(--text-primary);margin-bottom:6px">Pusat Layanan Pesan</h3>
+                            <p style="max-width:360px">Pilih kontak di sebelah kiri atau mulai percakapan baru untuk membalas chat konsumen/seller.</p>
+                        </div>
+
+                        <div id="chat-active-view" style="display:none;flex-direction:column;height:100%">
+                            <div class="chat-main-header">
+                                <div style="display:flex;align-items:center;gap:12px">
+                                    <div class="chat-conv-avatar" id="active-user-avatar">👤</div>
+                                    <div>
+                                        <div style="display:flex;align-items:center;gap:8px">
+                                            <span style="font-weight:700;font-size:1rem;color:var(--text-primary)" id="active-user-name">-</span>
+                                            <span id="active-user-role" class="badge" style="font-size:0.72rem;padding:2px 8px;border-radius:4px">User</span>
+                                        </div>
+                                        <div style="font-size:0.75rem;color:var(--text-muted)" id="active-user-status">● Sedang Terhubung</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="chat-messages-area" id="chat-messages">
+                                <!-- Messages injected here -->
+                            </div>
+
+                            <form class="chat-input-bar" id="chat-send-form" onsubmit="handleSendMessage(event)">
+                                <input type="text" id="chat-input" class="form-control" placeholder="Tulis balasan pesan untuk pengguna..." autocomplete="off" required style="font-size:0.9rem">
+                                <button type="submit" id="chat-submit-btn" class="btn btn-primary" style="white-space:nowrap;padding:8px 20px">
+                                    🚀 Kirim
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="/js/app.js"></script>
+    <script>
+        let conversations = [];
+        let allContacts = [];
+        let activeUserId = null;
+        let activeUserObj = null;
+        let pollInterval = null;
+
+        async function initAdminChat() {
+            await loadConversations();
+            // Auto poll every 3 seconds for real-time messages & conversations
+            pollInterval = setInterval(async () => {
+                await loadConversations(false);
+                if (activeUserId) {
+                    await loadMessages(activeUserId, false);
+                }
+            }, 3000);
+        }
+
+        async function loadConversations(showSpinner = true) {
+            try {
+                const data = await API.get('/api/chat/conversations');
+                conversations = data.conversations || [];
+                allContacts = data.all_contacts || [];
+                renderConversations(conversations);
+                populateContactsDropdown(allContacts);
+            } catch (err) {
+                if (err.message.includes('Unauthorized') || err.message.includes('Forbidden')) {
+                    window.location.href = '/login.html';
+                    return;
+                }
+                console.error('Error loading conversations:', err);
+            }
+        }
+
+        function populateContactsDropdown(contacts) {
+            const select = document.getElementById('start-chat-select');
+            if (!select) return;
+            const currentVal = select.value;
+            select.innerHTML = '<option value="">➕ Mulai Chat dengan User/Seller...</option>' + 
+                contacts.map(u => {
+                    const roleLabel = u.role === 'seller' ? '🏪 Seller' : '👤 User';
+                    return `<option value="${u.id}">${roleLabel}: ${u.username} (${u.email})</option>`;
+                }).join('');
+            select.value = currentVal;
+        }
+
+        function startChatWithSelected(userId) {
+            if (!userId) return;
+            selectConversation(parseInt(userId, 10));
+            document.getElementById('start-chat-select').value = '';
+        }
+
+        function filterConversations() {
+            const query = (document.getElementById('conv-search').value || '').toLowerCase();
+            const filtered = conversations.filter(c => 
+                (c.username || '').toLowerCase().includes(query) ||
+                (c.email || '').toLowerCase().includes(query) ||
+                (c.role || '').toLowerCase().includes(query)
+            );
+            renderConversations(filtered);
+        }
+
+        function renderConversations(list) {
+            const container = document.getElementById('conv-list');
+            if (list.length === 0) {
+                container.innerHTML = `<li style="padding:24px;text-align:center;color:var(--text-muted);font-size:0.85rem">Belum ada percakapan aktif. Gunakan menu dropdown di atas untuk memulai obrolan.</li>`;
+                return;
+            }
+
+            container.innerHTML = list.map(c => {
+                const isActive = activeUserId === c.id;
+                const roleBadge = c.role === 'seller' ? '🏪 Seller' : (c.role === 'admin' ? '🛡️ Admin' : '👤 User');
+                const lastMsg = c.last_message || 'Mulai percakapan';
+                let timeStr = '';
+                if (c.last_message_at) {
+                    try {
+                        timeStr = new Date(c.last_message_at.replace(' ', 'T') + 'Z').toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                    } catch(e) {
+                        timeStr = '';
+                    }
+                }
+
+                return `
+                    <li class="chat-conv-item ${isActive ? 'active' : ''}" onclick="selectConversation(${c.id})">
+                        <div class="chat-conv-avatar">${c.role === 'seller' ? '🏪' : '👤'}</div>
+                        <div class="chat-conv-info">
+                            <div class="chat-conv-name">
+                                <span>${c.username}</span>
+                                <span style="font-size:0.7rem;font-weight:normal;color:var(--text-muted)">${timeStr}</span>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px">
+                                <span class="chat-conv-preview">${escapeHtml(lastMsg)}</span>
+                                ${c.unread_count > 0 ? `<span class="chat-unread-badge">${c.unread_count}</span>` : ''}
+                            </div>
+                            <div style="margin-top:4px">
+                                <span style="font-size:0.68rem;padding:2px 6px;border-radius:4px;background:rgba(255,255,255,0.06);color:var(--text-secondary)">${roleBadge}</span>
+                            </div>
+                        </div>
+                    </li>
+                `;
+            }).join('');
+        }
+
+        async function selectConversation(userId) {
+            activeUserId = userId;
+            activeUserObj = conversations.find(c => c.id === userId) || allContacts.find(u => u.id === userId);
+
+            document.getElementById('chat-empty-view').style.display = 'none';
+            const activeView = document.getElementById('chat-active-view');
+            activeView.style.display = 'flex';
+
+            if (activeUserObj) {
+                document.getElementById('active-user-name').textContent = activeUserObj.username;
+                document.getElementById('active-user-avatar').textContent = activeUserObj.role === 'seller' ? '🏪' : '👤';
+                document.getElementById('active-user-role').textContent = (activeUserObj.role || 'user').toUpperCase();
+                document.getElementById('active-user-role').style.background = activeUserObj.role === 'seller' ? 'rgba(0, 184, 148, 0.2)' : 'rgba(0, 210, 255, 0.2)';
+                document.getElementById('active-user-role').style.color = activeUserObj.role === 'seller' ? 'var(--accent-green)' : 'var(--accent-cyan)';
+            }
+
+            renderConversations(conversations);
+            await loadMessages(userId, true);
+            
+            // Mark messages as read
+            try {
+                await API.put('/api/chat/read', { partner_id: userId });
+                if (activeUserObj) activeUserObj.unread_count = 0;
+            } catch (err) {
+                console.error(err);
+            }
+
+            setTimeout(() => {
+                const input = document.getElementById('chat-input');
+                if (input) input.focus();
+            }, 100);
+        }
+
+        async function loadMessages(userId, scrollToBottom = false) {
+            try {
+                const data = await API.get(`/api/chat/messages?user_id=${userId}`);
+                const messages = data.messages || [];
+                renderMessages(messages, scrollToBottom);
+            } catch (err) {
+                console.error('Error loading messages:', err);
+            }
+        }
+
+        function renderMessages(messages, scrollToBottom) {
+            const container = document.getElementById('chat-messages');
+            
+            if (messages.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align:center;padding:48px 16px;color:var(--text-muted);font-size:0.88rem">
+                        <div style="font-size:2.5rem;margin-bottom:8px">💬</div>
+                        Belum ada riwayat pesan dengan pengguna ini.<br>
+                        Ketik pesan di bawah untuk menyapa.
+                    </div>
+                `;
+                return;
+            }
+
+            // Check if user is near bottom before re-rendering
+            const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 120;
+
+            container.innerHTML = messages.map(m => {
+                const isMine = m.is_mine === 1;
+                let timeStr = '';
+                try {
+                    timeStr = new Date(m.created_at.replace(' ', 'T') + 'Z').toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                } catch(e) {
+                    timeStr = '';
+                }
+
+                if (isMine) {
+                    // Outgoing: Admin (You) -> Aligned to the RIGHT
+                    return `
+                        <div class="msg-row msg-row-outgoing">
+                            <div class="msg-bubble-wrap">
+                                <div class="msg-sender-tag">
+                                    <span class="badge" style="background:rgba(0, 210, 255, 0.2);color:var(--accent-cyan);font-size:0.7rem;padding:2px 8px;border-radius:4px">🛡️ Anda (Admin)</span>
+                                </div>
+                                <div class="msg-bubble">
+                                    ${escapeHtml(m.message)}
+                                </div>
+                                <div class="msg-time-status">
+                                    <span>${timeStr}</span>
+                                    <span>${m.is_read ? '✓✓' : '✓'}</span>
+                                </div>
+                            </div>
+                            <div class="msg-avatar" style="border-color:var(--accent-cyan)">🛡️</div>
+                        </div>
+                    `;
+                } else {
+                    // Incoming: Customer / Seller -> Aligned to the LEFT
+                    const roleBadge = m.sender_role === 'seller' ? 
+                        `<span class="badge" style="background:rgba(0, 184, 148, 0.2);color:var(--accent-green);font-size:0.7rem;padding:2px 8px;border-radius:4px">🏪 ${m.sender_username || 'Seller'} (Seller)</span>` :
+                        `<span class="badge" style="background:rgba(255, 255, 255, 0.1);color:#ffffff;font-size:0.7rem;padding:2px 8px;border-radius:4px">👤 ${m.sender_username || 'User'} (Konsumen)</span>`;
+
+                    return `
+                        <div class="msg-row msg-row-incoming">
+                            <div class="msg-avatar">${m.sender_role === 'seller' ? '🏪' : '👤'}</div>
+                            <div class="msg-bubble-wrap">
+                                <div class="msg-sender-tag">
+                                    ${roleBadge}
+                                </div>
+                                <div class="msg-bubble">
+                                    ${escapeHtml(m.message)}
+                                </div>
+                                <div class="msg-time-status">
+                                    <span>${timeStr}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            }).join('');
+
+            if (scrollToBottom || isNearBottom) {
+                container.scrollTop = container.scrollHeight;
+            }
+        }
+
+        async function handleSendMessage(e) {
+            e.preventDefault();
+            if (!activeUserId) {
+                showToast('Pilih pengguna terlebih dahulu untuk mengirim pesan.', 'warning');
+                return;
+            }
+
+            const input = document.getElementById('chat-input');
+            const submitBtn = document.getElementById('chat-submit-btn');
+            const message = input.value.trim();
+            if (!message) return;
+
+            input.value = '';
+            submitBtn.disabled = true;
+
+            try {
+                const res = await API.post('/api/chat/messages', {
+                    receiver_id: activeUserId,
+                    message: message
+                });
+                await loadMessages(activeUserId, true);
+                await loadConversations(false);
+                input.focus();
+            } catch (err) {
+                showToast(err.message, 'error');
+                input.value = message;
+            } finally {
+                submitBtn.disabled = false;
+            }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        document.addEventListener('DOMContentLoaded', initAdminChat);
+        window.addEventListener('beforeunload', () => {
+            if (pollInterval) clearInterval(pollInterval);
+        });
+    </script>
+</body>
+</html>

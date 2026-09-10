@@ -174,7 +174,7 @@ router.get('/:id/reviews', (req, res) => {
     try {
         const db = getDb();
         const query = `
-            SELECT r.id, r.rating, r.comment, r.created_at, u.username
+            SELECT r.id, r.rating, r.comment, r.created_at, r.is_anonymous, u.username
             FROM reviews r
             JOIN users u ON r.user_id = u.id
             WHERE r.product_id = ?
@@ -190,6 +190,14 @@ router.get('/:id/reviews', (req, res) => {
         const reviews = result[0].values.map(row => {
             const rev = {};
             columns.forEach((col, i) => { rev[col] = row[i]; });
+            if (rev.is_anonymous) {
+                const name = rev.username || 'User';
+                if (name.length <= 2) {
+                    rev.username = name[0] + '*** (Anonim)';
+                } else {
+                    rev.username = name[0] + '***' + name[name.length - 1] + ' (Anonim)';
+                }
+            }
             return rev;
         });
 
@@ -203,13 +211,20 @@ router.get('/:id/reviews', (req, res) => {
 // POST /api/products/:id/reviews - Add review
 router.post('/:id/reviews', isAuthenticated, (req, res) => {
     try {
-        const { rating, comment, order_id } = req.body;
+        const { rating, comment, order_id, is_anonymous } = req.body;
         const product_id = req.params.id;
         const user_id = req.session.userId;
+        const anonValue = (is_anonymous === true || is_anonymous === 1 || is_anonymous === '1' || is_anonymous === 'true') ? 1 : 0;
 
         if (!rating || rating < 1 || rating > 5 || !order_id) {
             return res.status(400).json({ error: 'Valid rating and order_id are required.' });
         }
+
+        if (!comment || !String(comment).trim()) {
+            return res.status(400).json({ error: 'Ulasan produk wajib diisi.' });
+        }
+
+        const cleanComment = String(comment).trim();
 
         const db = getDb();
         // Check if user bought this product
@@ -230,8 +245,8 @@ router.post('/:id/reviews', isAuthenticated, (req, res) => {
             return res.status(409).json({ error: 'You have already reviewed this product for this order.' });
         }
 
-        db.run('INSERT INTO reviews (user_id, product_id, order_id, rating, comment) VALUES (?, ?, ?, ?, ?)',
-            [user_id, product_id, order_id, rating, comment || '']);
+        db.run('INSERT INTO reviews (user_id, product_id, order_id, rating, comment, is_anonymous) VALUES (?, ?, ?, ?, ?, ?)',
+            [user_id, product_id, order_id, rating, cleanComment, anonValue]);
 
         // Update average rating on product
         const avgResult = db.exec('SELECT AVG(rating) FROM reviews WHERE product_id = ?', [product_id]);

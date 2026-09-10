@@ -115,6 +115,7 @@ const orderRoutes = require('./routes/orders');
 const paymentRoutes = require('./routes/payment');
 const userRoutes = require('./routes/users');
 const voucherRoutes = require('./routes/vouchers');
+const chatRoutes = require('./routes/chat');
 
 app.use(['/api/auth', '/auth'], authRoutes);
 app.use(['/api/products', '/products'], productRoutes);
@@ -123,6 +124,7 @@ app.use(['/api/orders', '/orders'], orderRoutes);
 app.use(['/api/payment', '/payment'], paymentRoutes);
 app.use(['/api/users', '/users'], userRoutes);
 app.use(['/api/vouchers', '/vouchers'], voucherRoutes);
+app.use(['/api/chat', '/chat'], chatRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {

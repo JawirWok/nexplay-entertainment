@@ -31,6 +31,7 @@
                 <div class="sidebar-title">Quick Links</div>
                 <ul class="sidebar-nav">
                     <li><a href="/" class="sidebar-link">🏪 Lihat Store</a></li>
+                    <li><a href="#" class="sidebar-link" onclick="if(window.openNexChat){window.openNexChat();}else{alert('Chat widget sedang dimuat...');}">💬 Chat Admin</a></li>
                     <li><a href="#" class="sidebar-link" onclick="logout()">🚪 Logout</a></li>
                 </ul>
             </aside>
@@ -38,7 +39,7 @@
             <div class="admin-content">
                 <div style="margin-bottom:24px">
                     <h2 style="margin-bottom:4px">🧾 Pesanan <span class="text-gradient">Produk Anda</span></h2>
-                    <p style="color:var(--text-secondary)">Kelola produk Anda yang dibeli konsumen, lalu kirim ke admin untuk verifikasi penyelesaian pesanan</p>
+                    <p style="color:var(--text-secondary)">Kelola produk Anda yang dibeli konsumen, lalu masukkan detail akun/voucher untuk dikirim ke admin</p>
                 </div>
 
                 <div class="glass-card" style="padding:0;overflow-x:auto">
@@ -65,12 +66,42 @@
         </div>
     </main>
 
+    <!-- Modal Input Data Akun / Pengiriman Produk -->
+    <div class="payment-modal" id="ship-modal" onclick="if(event.target===this)closeShipModal()">
+        <div class="glass-card" style="padding:24px; max-width:520px; width:100%; position:relative;">
+            <button type="button" onclick="closeShipModal()" style="position:absolute;top:12px;right:14px;background:none;border:none;color:white;font-size:1.3rem;cursor:pointer" title="Tutup Modal">✕</button>
+            <h3 style="margin-bottom:8px" id="ship-modal-title">📦 Kirim Akun / Data Akses Produk</h3>
+            <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:16px">
+                Masukkan detail akun (Email, Username, Password), serial key, link download, atau catatan akses produk. Data ini akan diperiksa Admin lalu otomatis diteruskan ke pembeli.
+            </p>
+            <form id="ship-form">
+                <input type="hidden" id="ship-item-id">
+                <div style="margin-bottom:12px">
+                    <label style="display:block;margin-bottom:6px;font-size:0.85rem;font-weight:600;color:var(--text-muted)">Produk</label>
+                    <div id="ship-product-name" style="font-weight:600;color:var(--accent-cyan)">-</div>
+                </div>
+                <div style="margin-bottom:18px">
+                    <label style="display:block;margin-bottom:6px;font-size:0.85rem;font-weight:600">Detail Akun / Kode Voucher / Pesan Pengiriman <span style="color:var(--accent-orange)">*</span></label>
+                    <textarea id="ship-delivery-data" class="form-control" rows="5" required placeholder="Contoh:&#10;Username/Email: user_game123@gmail.com&#10;Password: SecretPassword99!&#10;Catatan: Silakan amankan akun dan ganti password setelah menerima."></textarea>
+                </div>
+                <div style="display:flex;gap:10px;justify-content:flex-end">
+                    <button type="button" id="ship-cancel-btn" class="btn btn-secondary" onclick="closeShipModal()">✕</button>
+                    <button type="submit" id="ship-submit-btn" class="btn btn-primary">🚀 Kirim ke Admin</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script src="/js/app.js"></script>
+    <script src="/js/chat-widget.js"></script>
     <script>
+        let currentOrders = [];
+
         async function loadSellerOrders() {
             try {
                 const data = await API.get('/api/orders/seller/orders');
-                renderSellerOrders(data.orders || []);
+                currentOrders = data.orders || [];
+                renderSellerOrders(currentOrders);
             } catch (err) {
                 if (err.message.includes('Unauthorized') || err.message.includes('Forbidden') || err.message.includes('Seller access required')) {
                     window.location.href = '/login.html';
@@ -119,10 +150,16 @@
                         </td>
                         <td style="text-align:center">
                             ${isCompleted ? 
-                                '<span style="font-size:0.8rem;color:var(--accent-green);font-weight:600">✓ Transaksi Selesai</span>' :
+                                `<div style="display:flex;flex-direction:column;gap:4px;align-items:center">
+                                    <span style="font-size:0.8rem;color:var(--accent-green);font-weight:600">✓ Transaksi Selesai</span>
+                                    ${o.delivery_data ? `<button class="btn btn-secondary btn-sm" onclick="viewDeliveredData(${o.item_id})" style="padding:2px 8px;font-size:0.72rem">👁️ Lihat Akun</button>` : ''}
+                                </div>` :
                                 (isSentToAdmin ?
-                                    '<span style="font-size:0.8rem;color:var(--text-muted)">Menunggu Verifikasi Admin</span>' :
-                                    `<button class="btn btn-primary btn-sm" onclick="shipItemToAdmin(${o.item_id})" style="padding:5px 12px;font-size:0.8rem">
+                                    `<div style="display:flex;flex-direction:column;gap:4px;align-items:center">
+                                        <span style="font-size:0.8rem;color:var(--text-muted)">Menunggu Verifikasi</span>
+                                        ${o.delivery_data ? `<button class="btn btn-secondary btn-sm" onclick="viewDeliveredData(${o.item_id})" style="padding:2px 8px;font-size:0.72rem">👁️ Detail Terkirim</button>` : ''}
+                                    </div>` :
+                                    `<button class="btn btn-primary btn-sm" onclick="openShipModal(${o.item_id}, '${(o.product_name || '').replace(/'/g, "\\'")}', '${o.order_code}')" style="padding:5px 12px;font-size:0.8rem;white-space:nowrap">
                                         🚀 Kirim ke Admin
                                     </button>`
                                 )
@@ -133,15 +170,64 @@
             }).join('');
         }
 
-        async function shipItemToAdmin(itemId) {
+        function openShipModal(itemId, productName, orderCode) {
+            document.getElementById('ship-item-id').value = itemId;
+            document.getElementById('ship-product-name').textContent = `${productName} (${orderCode})`;
+            document.getElementById('ship-delivery-data').value = '';
+            document.getElementById('ship-delivery-data').removeAttribute('readonly');
+            document.getElementById('ship-submit-btn').style.display = 'inline-block';
+            document.getElementById('ship-cancel-btn').textContent = '✕';
+            document.getElementById('ship-modal-title').textContent = '📦 Kirim Akun / Data Akses Produk';
+            document.getElementById('ship-modal').classList.add('show');
+            setTimeout(() => {
+                document.getElementById('ship-delivery-data').focus();
+            }, 100);
+        }
+
+        function viewDeliveredData(itemId) {
+            const item = currentOrders.find(o => o.item_id === itemId);
+            if (!item) return;
+
+            document.getElementById('ship-item-id').value = itemId;
+            document.getElementById('ship-product-name').textContent = `${item.product_name} (${item.order_code})`;
+            document.getElementById('ship-delivery-data').value = item.delivery_data || '(Belum ada data)';
+            document.getElementById('ship-delivery-data').setAttribute('readonly', 'true');
+            document.getElementById('ship-submit-btn').style.display = 'none';
+            document.getElementById('ship-cancel-btn').textContent = '✕ Tutup';
+            document.getElementById('ship-modal-title').textContent = '📋 Detail Data Yang Sudah Dikirim';
+            document.getElementById('ship-modal').classList.add('show');
+        }
+
+        function closeShipModal() {
+            document.getElementById('ship-modal').classList.remove('show');
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeShipModal();
+        });
+
+        document.getElementById('ship-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const itemId = document.getElementById('ship-item-id').value;
+            const deliveryData = document.getElementById('ship-delivery-data').value.trim();
+
+            if (!deliveryData) {
+                showToast('Harap isi detail akun/voucher terlebih dahulu.', 'error');
+                return;
+            }
+
             try {
-                const res = await API.put('/api/orders/seller/ship-item', { item_id: itemId });
-                showToast(res.message, 'success');
+                const res = await API.put('/api/orders/seller/ship-item', { 
+                    item_id: parseInt(itemId),
+                    delivery_data: deliveryData
+                });
+                showToast(res.message || 'Data berhasil dikirim ke Admin! 🚀', 'success');
+                closeShipModal();
                 loadSellerOrders();
             } catch (err) {
                 showToast(err.message, 'error');
             }
-        }
+        });
 
         document.addEventListener('DOMContentLoaded', loadSellerOrders);
     </script>

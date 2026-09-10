@@ -295,4 +295,13 @@ document.addEventListener('DOMContentLoaded', () => {
     initNavbar();
     checkAuth();
     initScrollAnimations();
+
+    // Dynamically load chat widget if not already present
+    if (!document.getElementById('nex-chat-widget-script')) {
+        const chatScript = document.createElement('script');
+        chatScript.id = 'nex-chat-widget-script';
+        chatScript.src = '/js/chat-widget.js';
+        chatScript.defer = true;
+        document.body.appendChild(chatScript);
+    }
 });
