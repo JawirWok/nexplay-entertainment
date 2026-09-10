@@ -2,15 +2,7 @@
   "version": 2,
   "functions": {
     "api/index.js": {
-      "includeFiles": [
-        "database.sqlite",
-        "sql-wasm.wasm",
-        "database/sql-wasm.wasm",
-        "api/sql-wasm.wasm",
-        "database/schema.sql",
-        "database/**",
-        "node_modules/sql.js/dist/**"
-      ]
+      "includeFiles": "{database.sqlite,sql-wasm.wasm,database/**,api/**,node_modules/sql.js/dist/**}"
     }
   },
   "rewrites": [
