@@ -150,5 +150,26 @@
 
         document.addEventListener('DOMContentLoaded', loadDashboard);
     </script>
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        if (window.lucide) {
+            lucide.createIcons();
+            // Automatically update icons when DOM changes (for dynamic content)
+            const observer = new MutationObserver((mutations) => {
+                let shouldUpdate = false;
+                for (let m of mutations) {
+                    if (m.addedNodes.length > 0) {
+                        shouldUpdate = true;
+                        break;
+                    }
+                }
+                if (shouldUpdate) {
+                    lucide.createIcons();
+                }
+            });
+            observer.observe(document.body, { childList: true, subtree: true });
+        }
+    </script>
 </body>
 </html>
