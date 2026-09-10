@@ -171,7 +171,18 @@
 
             renderChatUI();
             checkUnread();
-            unreadTimer = setInterval(checkUnread, 6000);
+            unreadTimer = setInterval(checkUnread, 5000);
+
+            // Listen for cross-tab chat events
+            window.addEventListener('storage', (e) => {
+                if (e.key === 'nexplay_chat_cache' || e.key === 'nexplay_chat_last_update') {
+                    if (isOpen) {
+                        loadMessages();
+                    } else {
+                        checkUnread();
+                    }
+                }
+            });
         } catch (e) {
             // Not logged in or error
         }
@@ -270,7 +281,10 @@
     async function loadMessages() {
         try {
             const data = await API.get(`/api/chat/messages?user_id=${ADMIN_TARGET_ID}`);
-            const messages = data.messages || [];
+            let messages = data.messages || [];
+            if (typeof ChatCache !== 'undefined') {
+                messages = ChatCache.mergeMessages(messages);
+            }
             const container = document.getElementById('nex-chat-msgs');
             if (!container) return;
 
@@ -360,10 +374,13 @@
         btn.disabled = true;
 
         try {
-            await API.post('/api/chat/messages', {
+            const res = await API.post('/api/chat/messages', {
                 receiver_id: ADMIN_TARGET_ID,
                 message: text
             });
+            if (typeof ChatCache !== 'undefined' && (res.chat_message || res.chat)) {
+                ChatCache.saveMessage(res.chat_message || res.chat);
+            }
             await loadMessages();
             const container = document.getElementById('nex-chat-msgs');
             if (container) container.scrollTop = container.scrollHeight;

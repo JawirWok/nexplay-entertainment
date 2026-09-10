@@ -45,6 +45,122 @@ const AppState = {
     cartCount: 0
 };
 
+// ── Client-Side Cart Store (Resilient to Serverless Cold Starts) ──
+const CartStore = {
+    STORAGE_KEY: 'nexplay_local_cart',
+    getItems() {
+        try {
+            return JSON.parse(localStorage.getItem(this.STORAGE_KEY) || '[]');
+        } catch (e) {
+            return [];
+        }
+    },
+    saveItems(items) {
+        try {
+            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(items));
+        } catch (e) {}
+        AppState.cartCount = this.getCount();
+        updateCartBadge();
+        window.dispatchEvent(new CustomEvent('nexplay_cart_updated', { detail: items }));
+    },
+    addItem(product, quantity = 1) {
+        const items = this.getItems();
+        const pid = parseInt(product.id || product.product_id, 10);
+        const existing = items.find(i => (i.product_id || i.id) === pid);
+        if (existing) {
+            existing.quantity = (existing.quantity || 1) + quantity;
+        } else {
+            let actualPrice = product.price || 0;
+            if (product.discount_percentage && product.discount_percentage > 0) {
+                actualPrice = product.price - (product.price * product.discount_percentage / 100);
+            }
+            items.push({
+                id: product.cart_id || pid,
+                product_id: pid,
+                name: product.name || ('Item #' + pid),
+                price: product.price || 0,
+                actual_price: actualPrice,
+                image_url: product.image_url || '',
+                category: product.category || 'game',
+                seller_id: product.seller_id || 1,
+                stock: product.stock || 100,
+                discount_percentage: product.discount_percentage || 0,
+                quantity: quantity
+            });
+        }
+        this.saveItems(items);
+    },
+    updateQty(productId, qty) {
+        let items = this.getItems();
+        const pid = parseInt(productId, 10);
+        if (qty <= 0) {
+            items = items.filter(i => (i.product_id || i.id) !== pid && i.id !== pid);
+        } else {
+            const item = items.find(i => (i.product_id || i.id) === pid || i.id === pid);
+            if (item) item.quantity = qty;
+        }
+        this.saveItems(items);
+    },
+    removeItem(productId) {
+        const pid = parseInt(productId, 10);
+        const items = this.getItems().filter(i => (i.product_id || i.id) !== pid && i.id !== pid);
+        this.saveItems(items);
+    },
+    clear() {
+        try {
+            localStorage.removeItem(this.STORAGE_KEY);
+        } catch (e) {}
+        AppState.cartCount = 0;
+        updateCartBadge();
+        window.dispatchEvent(new CustomEvent('nexplay_cart_updated', { detail: [] }));
+    },
+    getCount() {
+        return this.getItems().reduce((sum, i) => sum + (i.quantity || 1), 0);
+    }
+};
+
+// ── Client-Side Chat Cache (Instant Tab-to-Tab Synchronization) ──
+const ChatCache = {
+    STORAGE_KEY: 'nexplay_chat_cache',
+    getAll() {
+        try {
+            return JSON.parse(localStorage.getItem(this.STORAGE_KEY) || '[]');
+        } catch (e) {
+            return [];
+        }
+    },
+    saveAll(msgs) {
+        try {
+            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(msgs));
+        } catch (e) {}
+        window.dispatchEvent(new CustomEvent('nexplay_chat_message', { detail: msgs }));
+    },
+    addMessage(msg) {
+        const all = this.getAll();
+        const exists = all.some(m => 
+            (m.id && msg.id && m.id === msg.id) ||
+            (m.sender_id === msg.sender_id && m.receiver_id === msg.receiver_id && m.message === msg.message && Math.abs(new Date(m.created_at || Date.now()) - new Date(msg.created_at || Date.now())) < 5000)
+        );
+        if (!exists) {
+            all.push({
+                ...msg,
+                id: msg.id || ('local_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4)),
+                created_at: msg.created_at || new Date().toISOString()
+            });
+            this.saveAll(all);
+        }
+    },
+    getMessagesBetween(userA, userB) {
+        const a = parseInt(userA, 10), b = parseInt(userB, 10);
+        return this.getAll().filter(m => 
+            (m.sender_id == a && m.receiver_id == b) || 
+            (m.sender_id == b && m.receiver_id == a) ||
+            (b === 1 && m.receiver_id == 1 && m.sender_id == a) ||
+            (a === 1 && m.receiver_id == 1 && m.sender_id == b)
+        );
+    }
+};
+
 // ── Toast Notifications ──
 function showToast(message, type = 'info') {
     let container = document.querySelector('.toast-container');
@@ -222,10 +338,30 @@ async function addToCart(productId) {
     }
 
     try {
-        const data = await API.post('/api/cart', { product_id: productId });
-        AppState.cartCount = data.cartCount || (AppState.cartCount + 1);
+        let prod = null;
+        if (window.catalogProducts && Array.isArray(window.catalogProducts)) {
+            prod = window.catalogProducts.find(p => p.id == productId);
+        }
+        if (!prod) {
+            try {
+                const res = await API.get(`/api/products/${productId}`);
+                prod = res.product || res;
+            } catch (e) {}
+        }
+
+        if (prod) {
+            CartStore.addItem(prod, 1);
+        } else {
+            CartStore.addItem({ id: productId, name: 'Produk #' + productId, price: 0 }, 1);
+        }
+
+        // Background server sync
+        API.post('/api/cart', { product_id: productId }).catch(() => {});
+        API.post('/api/cart/sync', { items: CartStore.getItems() }).catch(() => {});
+
+        AppState.cartCount = CartStore.getCount();
         updateCartBadge();
-        showToast('Added to cart! 🛒', 'success');
+        showToast('Berhasil ditambahkan ke keranjang! 🛒', 'success');
     } catch (err) {
         showToast(err.message, 'error');
     }
@@ -234,8 +370,10 @@ async function addToCart(productId) {
 function updateCartBadge() {
     const badge = document.getElementById('cart-count');
     if (badge) {
-        badge.textContent = AppState.cartCount;
-        badge.style.display = AppState.cartCount > 0 ? 'flex' : 'none';
+        const count = CartStore.getCount();
+        AppState.cartCount = count;
+        badge.textContent = count;
+        badge.style.display = count > 0 ? 'flex' : 'none';
     }
 }
 

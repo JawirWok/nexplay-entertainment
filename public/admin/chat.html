@@ -334,13 +334,24 @@
 
         async function initAdminChat() {
             await loadConversations();
-            // Auto poll every 3 seconds for real-time messages & conversations
+            
+            // Listen for immediate cross-tab chat events
+            window.addEventListener('storage', (e) => {
+                if (e.key === 'nexplay_chat_cache' || e.key === 'nexplay_chat_last_update') {
+                    loadConversations(false);
+                    if (activeUserId) {
+                        loadMessages(activeUserId, true);
+                    }
+                }
+            });
+
+            // Auto poll every 2.5 seconds for real-time messages & conversations
             pollInterval = setInterval(async () => {
                 await loadConversations(false);
                 if (activeUserId) {
                     await loadMessages(activeUserId, false);
                 }
-            }, 3000);
+            }, 2500);
         }
 
         async function loadConversations(showSpinner = true) {
@@ -464,7 +475,10 @@
         async function loadMessages(userId, scrollToBottom = false) {
             try {
                 const data = await API.get(`/api/chat/messages?user_id=${userId}`);
-                const messages = data.messages || [];
+                let messages = data.messages || [];
+                if (typeof ChatCache !== 'undefined') {
+                    messages = ChatCache.mergeMessages(messages);
+                }
                 renderMessages(messages, scrollToBottom);
             } catch (err) {
                 console.error('Error loading messages:', err);
@@ -566,6 +580,9 @@
                     receiver_id: activeUserId,
                     message: message
                 });
+                if (typeof ChatCache !== 'undefined' && (res.chat_message || res.chat)) {
+                    ChatCache.saveMessage(res.chat_message || res.chat);
+                }
                 await loadMessages(activeUserId, true);
                 await loadConversations(false);
                 input.focus();

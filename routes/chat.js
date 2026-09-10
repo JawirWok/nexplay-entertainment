@@ -47,17 +47,13 @@ router.get('/conversations', isAdmin, (req, res) => {
         }
 
         const partnersQuery = `
-            SELECT DISTINCT 
-                CASE 
-                    WHEN sender_id = ? THEN receiver_id 
-                    WHEN receiver_id = ? THEN sender_id
-                    WHEN receiver_id IN (SELECT id FROM users WHERE role = 'admin') THEN sender_id
-                    ELSE receiver_id 
-                END as partner_id
-            FROM chat_messages
-            WHERE sender_id = ? OR receiver_id = ? OR receiver_id IN (SELECT id FROM users WHERE role = 'admin')
+            SELECT pid FROM (
+                SELECT DISTINCT sender_id AS pid FROM chat_messages WHERE sender_id NOT IN (SELECT id FROM users WHERE role = 'admin')
+                UNION
+                SELECT DISTINCT receiver_id AS pid FROM chat_messages WHERE receiver_id NOT IN (SELECT id FROM users WHERE role = 'admin')
+            ) WHERE pid IS NOT NULL
         `;
-        const partnersRes = db.exec(partnersQuery, [adminId, adminId, adminId, adminId]);
+        const partnersRes = db.exec(partnersQuery);
 
         if (partnersRes.length === 0 || partnersRes[0].values.length === 0) {
             return res.json({ conversations: [], all_contacts });
@@ -80,10 +76,10 @@ router.get('/conversations', isAdmin, (req, res) => {
             const lastMsgRes = db.exec(`
                 SELECT message, created_at, sender_id
                 FROM chat_messages
-                WHERE (sender_id = ? AND receiver_id = ?) 
-                   OR (sender_id = ? AND (receiver_id = ? OR receiver_id IN (SELECT id FROM users WHERE role = 'admin')))
-                ORDER BY created_at DESC, id DESC LIMIT 1
-            `, [adminId, pid, pid, adminId]);
+                WHERE (sender_id = ? AND (receiver_id = ? OR receiver_id IN (SELECT id FROM users WHERE role = 'admin')))
+                   OR ((sender_id = ? OR sender_id IN (SELECT id FROM users WHERE role = 'admin')) AND receiver_id = ?)
+                ORDER BY id DESC LIMIT 1
+            `, [pid, adminId, adminId, pid]);
 
             let last_message = '';
             let last_message_time = '';
@@ -157,32 +153,16 @@ router.get('/messages', isAuthenticated, (req, res) => {
         }
 
         // Get messages between current user and partner
-        let query;
-        let queryParams;
-        if (isAdminUser) {
-            // Admin sees messages between any admin and this partner
-            query = `
-                SELECT cm.id, cm.sender_id, cm.receiver_id, cm.message, cm.is_read, cm.created_at,
-                       u.username as sender_username, u.role as sender_role
-                FROM chat_messages cm
-                JOIN users u ON cm.sender_id = u.id
-                WHERE (cm.sender_id = ? AND cm.receiver_id = ?) 
-                   OR (cm.sender_id = ? AND (cm.receiver_id = ? OR cm.receiver_id IN (SELECT id FROM users WHERE role = 'admin')))
-                ORDER BY cm.created_at ASC, cm.id ASC
-            `;
-            queryParams = [currentUserId, partnerId, partnerId, currentUserId];
-        } else {
-            query = `
-                SELECT cm.id, cm.sender_id, cm.receiver_id, cm.message, cm.is_read, cm.created_at,
-                       u.username as sender_username, u.role as sender_role
-                FROM chat_messages cm
-                JOIN users u ON cm.sender_id = u.id
-                WHERE (cm.sender_id = ? AND (cm.receiver_id = ? OR cm.receiver_id IN (SELECT id FROM users WHERE role = 'admin'))) 
-                   OR (cm.sender_id IN (SELECT id FROM users WHERE role = 'admin') AND cm.receiver_id = ?)
-                ORDER BY cm.created_at ASC, cm.id ASC
-            `;
-            queryParams = [currentUserId, partnerId, currentUserId];
-        }
+        const query = `
+            SELECT cm.id, cm.sender_id, cm.receiver_id, cm.message, cm.is_read, cm.created_at,
+                   u.username as sender_username, u.role as sender_role
+            FROM chat_messages cm
+            LEFT JOIN users u ON cm.sender_id = u.id
+            WHERE (cm.sender_id = ? AND (cm.receiver_id = ? OR cm.receiver_id IN (SELECT id FROM users WHERE role = 'admin')))
+               OR ((cm.sender_id = ? OR cm.sender_id IN (SELECT id FROM users WHERE role = 'admin')) AND cm.receiver_id = ?)
+            ORDER BY cm.created_at ASC, cm.id ASC
+        `;
+        const queryParams = isAdminUser ? [partnerId, adminId, adminId, partnerId] : [currentUserId, partnerId, partnerId, currentUserId];
 
         const result = db.exec(query, queryParams);
 
@@ -247,7 +227,7 @@ router.post('/messages', isAuthenticated, (req, res) => {
             SELECT cm.id, cm.sender_id, cm.receiver_id, cm.message, cm.is_read, cm.created_at,
                    u.username as sender_username, u.role as sender_role
             FROM chat_messages cm
-            JOIN users u ON cm.sender_id = u.id
+            LEFT JOIN users u ON cm.sender_id = u.id
             ORDER BY cm.id DESC LIMIT 1
         `);
 
@@ -265,7 +245,11 @@ router.post('/messages', isAuthenticated, (req, res) => {
             cols.forEach((col, i) => { newMessage[col] = newMsgRes[0].values[0][i]; });
         }
 
-        res.status(201).json({ message: 'Pesan berhasil dikirim', chat: newMessage });
+        res.status(201).json({ 
+            message: 'Pesan berhasil dikirim', 
+            chat: newMessage,
+            chat_message: newMessage 
+        });
     } catch (err) {
         console.error('Send message error:', err);
         res.status(500).json({ error: 'Internal server error.' });

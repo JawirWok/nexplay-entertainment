@@ -6,39 +6,73 @@ const router = express.Router();
 // POST /api/orders/checkout - Checkout cart → create order
 router.post('/checkout', isAuthenticated, (req, res) => {
     try {
-        const { payment_method, selected_items, voucher_code } = req.body;
+        const { payment_method, selected_items, voucher_code, items: directItems } = req.body;
         const db = getDb();
 
-        let query = `
-            SELECT ci.id, ci.quantity, p.id as product_id, p.name, p.price, p.stock, p.seller_id, p.discount_percentage
-            FROM cart_items ci
-            JOIN products p ON ci.product_id = p.id
-            WHERE ci.user_id = ?
-        `;
-        let params = [req.session.userId];
+        let items = [];
 
-        if (selected_items && Array.isArray(selected_items) && selected_items.length > 0) {
-            query += ` AND ci.id IN (${selected_items.map(() => '?').join(',')})`;
-            params.push(...selected_items);
+        // 1. If client provided items directly (from localStorage / sessionStorage fallback)
+        if (directItems && Array.isArray(directItems) && directItems.length > 0) {
+            for (const dItem of directItems) {
+                const pid = parseInt(dItem.product_id || dItem.id, 10);
+                const qty = parseInt(dItem.quantity || 1, 10);
+                if (!pid) continue;
+                const pRes = db.exec('SELECT id, name, price, stock, seller_id, discount_percentage FROM products WHERE id = ?', [pid]);
+                if (pRes.length > 0 && pRes[0].values.length > 0) {
+                    const row = pRes[0].values[0];
+                    const item = {
+                        id: pid,
+                        product_id: pid,
+                        quantity: qty,
+                        name: row[1],
+                        price: row[2],
+                        stock: row[3],
+                        seller_id: row[4] || 1,
+                        discount_percentage: row[5] || 0
+                    };
+                    item.actual_price = item.price;
+                    if (item.discount_percentage > 0) {
+                        item.actual_price = item.price - (item.price * item.discount_percentage / 100);
+                    }
+                    items.push(item);
+                }
+            }
         }
 
-        const cartResult = db.exec(query, params);
+        // 2. If no direct items, load from cart_items table
+        if (items.length === 0) {
+            let query = `
+                SELECT ci.id, ci.quantity, p.id as product_id, p.name, p.price, p.stock, p.seller_id, p.discount_percentage
+                FROM cart_items ci
+                JOIN products p ON ci.product_id = p.id
+                WHERE ci.user_id = ?
+            `;
+            let params = [req.session.userId];
 
-        if (cartResult.length === 0 || cartResult[0].values.length === 0) {
+            if (selected_items && Array.isArray(selected_items) && selected_items.length > 0) {
+                query += ` AND ci.id IN (${selected_items.map(() => '?').join(',')})`;
+                params.push(...selected_items);
+            }
+
+            const cartResult = db.exec(query, params);
+
+            if (cartResult.length > 0 && cartResult[0].values.length > 0) {
+                const columns = cartResult[0].columns;
+                items = cartResult[0].values.map(row => {
+                    const item = {};
+                    columns.forEach((col, i) => { item[col] = row[i]; });
+                    item.actual_price = item.price;
+                    if (item.discount_percentage > 0) {
+                        item.actual_price = item.price - (item.price * item.discount_percentage / 100);
+                    }
+                    return item;
+                });
+            }
+        }
+
+        if (items.length === 0) {
             return res.status(400).json({ error: 'Cart is empty or items not found.' });
         }
-
-        const columns = cartResult[0].columns;
-        const items = cartResult[0].values.map(row => {
-            const item = {};
-            columns.forEach((col, i) => { item[col] = row[i]; });
-            // Calculate actual price with discount
-            item.actual_price = item.price;
-            if (item.discount_percentage > 0) {
-                item.actual_price = item.price - (item.price * item.discount_percentage / 100);
-            }
-            return item;
-        });
 
         // Stock validation
         for (const item of items) {

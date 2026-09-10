@@ -117,14 +117,30 @@ router.delete('/:id', isAuthenticated, (req, res) => {
     }
 });
 
-// GET /api/cart/count - Get cart item count
-router.get('/count', isAuthenticated, (req, res) => {
+// POST /api/cart/sync - Sync client-side cart items with database
+router.post('/sync', isAuthenticated, (req, res) => {
     try {
+        const { items } = req.body;
         const db = getDb();
-        const result = db.exec('SELECT SUM(quantity) FROM cart_items WHERE user_id = ?', [req.session.userId]);
-        const count = result[0] ? result[0].values[0][0] || 0 : 0;
-        res.json({ count });
+        const userId = req.session.userId;
+        if (Array.isArray(items)) {
+            for (const item of items) {
+                const pid = parseInt(item.product_id || item.id, 10);
+                const qty = parseInt(item.quantity || 1, 10);
+                if (!pid) continue;
+                const existing = db.exec('SELECT id, quantity FROM cart_items WHERE user_id = ? AND product_id = ?', [userId, pid]);
+                if (existing.length > 0 && existing[0].values.length > 0) {
+                    const cartId = existing[0].values[0][0];
+                    db.run('UPDATE cart_items SET quantity = ? WHERE id = ?', [qty, cartId]);
+                } else {
+                    db.run('INSERT INTO cart_items (user_id, product_id, quantity) VALUES (?, ?, ?)', [userId, pid, qty]);
+                }
+            }
+            saveDatabase();
+        }
+        res.json({ success: true, message: 'Cart synchronized' });
     } catch (err) {
+        console.error('Cart sync error:', err);
         res.status(500).json({ error: 'Internal server error.' });
     }
 });

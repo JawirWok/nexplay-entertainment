@@ -72,20 +72,54 @@
 
         async function loadCheckout() {
             try {
-                cartData = await API.get('/api/cart');
-
-                // Filter by selected items from sessionStorage
-                const selectedItemsJson = sessionStorage.getItem('nexplay_checkout_items');
-                if (selectedItemsJson) {
+                // 1. Check sessionStorage nexplay_checkout_data
+                let checkoutItems = null;
+                const checkoutDataJson = sessionStorage.getItem('nexplay_checkout_data');
+                if (checkoutDataJson) {
                     try {
-                        const selectedItemIds = JSON.parse(selectedItemsJson);
-                        if (Array.isArray(selectedItemIds) && selectedItemIds.length > 0) {
-                            cartData.items = cartData.items.filter(i => selectedItemIds.includes(i.id));
-                        }
-                    } catch (e) { console.error('Invalid selected items in session storage'); }
+                        checkoutItems = JSON.parse(checkoutDataJson);
+                    } catch (e) { console.error('Error parsing nexplay_checkout_data', e); }
                 }
 
-                if (!cartData.items || cartData.items.length === 0) {
+                // 2. Fallback to CartStore in localStorage
+                if (!checkoutItems || checkoutItems.length === 0) {
+                    const localItems = (typeof CartStore !== 'undefined') ? CartStore.getItems() : [];
+                    const selectedItemsJson = sessionStorage.getItem('nexplay_checkout_items');
+                    if (selectedItemsJson) {
+                        try {
+                            const selectedItemIds = JSON.parse(selectedItemsJson);
+                            if (Array.isArray(selectedItemIds) && selectedItemIds.length > 0) {
+                                checkoutItems = localItems.filter(i => selectedItemIds.includes(i.id) || selectedItemIds.includes(i.product_id));
+                            }
+                        } catch (e) {}
+                    }
+                    if (!checkoutItems || checkoutItems.length === 0) {
+                        checkoutItems = localItems;
+                    }
+                }
+
+                // 3. Try to fetch from server or sync local items to server
+                try {
+                    const serverCart = await API.get('/api/cart');
+                    if ((!checkoutItems || checkoutItems.length === 0) && serverCart && serverCart.items && serverCart.items.length > 0) {
+                        const selectedItemsJson = sessionStorage.getItem('nexplay_checkout_items');
+                        if (selectedItemsJson) {
+                            try {
+                                const selectedItemIds = JSON.parse(selectedItemsJson);
+                                if (Array.isArray(selectedItemIds) && selectedItemIds.length > 0) {
+                                    serverCart.items = serverCart.items.filter(i => selectedItemIds.includes(i.id));
+                                }
+                            } catch (e) {}
+                        }
+                        checkoutItems = serverCart.items;
+                    } else if (checkoutItems && checkoutItems.length > 0) {
+                        API.post('/api/cart/sync', { items: checkoutItems }).catch(() => {});
+                    }
+                } catch (apiErr) {
+                    console.warn('API cart check note:', apiErr);
+                }
+
+                if (!checkoutItems || checkoutItems.length === 0) {
                     document.getElementById('checkout-content').innerHTML = `
                         <div class="empty-state">
                             <div class="empty-icon">🛒</div>
@@ -97,19 +131,21 @@
                     return;
                 }
 
+                cartData = { items: checkoutItems };
+
                 // Calculate subtotal
                 cartData.subtotal = cartData.items.reduce((sum, i) => sum + ((i.actual_price || i.price) * i.quantity), 0);
 
                 // Load payment methods
                 const methodsData = await API.get('/api/payment/methods');
-                savedMethods = methodsData.methods;
+                savedMethods = methodsData.methods || [];
                 renderPaymentStep(savedMethods);
             } catch (err) {
-                if (err.message.includes('Unauthorized')) {
+                if (err.message && err.message.includes('Unauthorized')) {
                     window.location.href = '/login.html';
                     return;
                 }
-                showToast(err.message, 'error');
+                showToast(err.message || 'Gagal memuat checkout', 'error');
             }
         }
 
@@ -294,6 +330,7 @@
                 const orderData = await API.post('/api/orders/checkout', {
                     payment_method: selectedMethod,
                     selected_items: selectedItems,
+                    items: cartData ? cartData.items : undefined,
                     voucher_code: appliedVoucher ? appliedVoucher.code : ''
                 });
 
@@ -436,7 +473,20 @@
                         </div>
                     `;
 
-                    AppState.cartCount = 0;
+                    if (typeof CartStore !== 'undefined') {
+                        if (cartData && cartData.items) {
+                            cartData.items.forEach(item => {
+                                CartStore.removeItem(item.id || item.product_id);
+                            });
+                        } else {
+                            CartStore.clear();
+                        }
+                        AppState.cartCount = CartStore.getCount();
+                    } else {
+                        AppState.cartCount = 0;
+                    }
+                    sessionStorage.removeItem('nexplay_checkout_data');
+                    sessionStorage.removeItem('nexplay_checkout_items');
                     updateCartBadge();
                 }, 2000);
 

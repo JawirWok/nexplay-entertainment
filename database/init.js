@@ -146,45 +146,56 @@ CREATE TABLE IF NOT EXISTS chat_messages (
 );
 `;
 
+const fallbackUsers = [
+    { id: 1, username: 'admin', email: 'admin@nexplay.com', password: bcrypt.hashSync('admin123', 10), role: 'admin', created_at: new Date().toISOString() },
+    { id: 2, username: 'user1', email: 'user1@nexplay.com', password: bcrypt.hashSync('user123', 10), role: 'user', created_at: new Date().toISOString() },
+    { id: 3, username: 'gamer99', email: 'gamer99@nexplay.com', password: bcrypt.hashSync('user123', 10), role: 'user', created_at: new Date().toISOString() },
+    { id: 4, username: 'seller1', email: 'seller1@nexplay.com', password: bcrypt.hashSync('seller123', 10), role: 'seller', created_at: new Date().toISOString() }
+];
+
+const fallbackProdCols = ['id', 'name', 'description', 'price', 'category', 'image_url', 'stock', 'rating', 'platform', 'developer', 'release_year', 'featured', 'seller_id', 'discount_percentage'];
+const fallbackProducts = DEFAULT_PRODUCTS.map(p => {
+    const obj = {};
+    fallbackProdCols.forEach((col, idx) => { obj[col] = p[idx]; });
+    return obj;
+});
+
+const fallbackVouchers = [
+    { id: 1, code: 'HEMAT10', discount_type: 'percentage', discount_value: 10, min_purchase: 50000, usage_limit: 100, used_count: 0, valid_until: '2026-12-31', is_active: 1, created_at: new Date().toISOString() },
+    { id: 2, code: 'NEXPLAY25', discount_type: 'fixed', discount_value: 25000, min_purchase: 100000, usage_limit: 50, used_count: 0, valid_until: '2026-12-31', is_active: 1, created_at: new Date().toISOString() },
+    { id: 3, code: 'HEMAT30', discount_type: 'percentage', discount_value: 30, min_purchase: 0, usage_limit: 100, used_count: 1, valid_until: '2026-12-31', is_active: 1, created_at: new Date().toISOString() }
+];
+
+const fallbackCartItems = [];
+const fallbackOrders = [
+    { id: 1, user_id: 2, total_amount: 498000, payment_method: 'qris', payment_status: 'success', order_code: 'NXP-DEMO-001', voucher_code: 'HEMAT10', voucher_discount: 49800, created_at: new Date(Date.now() - 3600000).toISOString() },
+    { id: 2, user_id: 3, total_amount: 299000, payment_method: 'bca_va', payment_status: 'pending', order_code: 'NXP-DEMO-002', voucher_code: '', voucher_discount: 0, created_at: new Date(Date.now() - 1800000).toISOString() }
+];
+const fallbackOrderItems = [
+    { id: 1, order_id: 1, product_id: 1, quantity: 1, price: 299000, seller_id: 1, admin_commission: 59800, seller_commission: 239200, fulfillment_status: 'siap_diproses', delivery_data: 'Akun: user1@demo.com | Pass: demo123' },
+    { id: 2, order_id: 1, product_id: 2, quantity: 1, price: 199000, seller_id: 1, admin_commission: 39800, seller_commission: 159200, fulfillment_status: 'siap_diproses', delivery_data: 'Serial Key: W3-ABCD-1234-XYZ' },
+    { id: 3, order_id: 2, product_id: 1, quantity: 1, price: 299000, seller_id: 1, admin_commission: 59800, seller_commission: 239200, fulfillment_status: 'menunggu_seller', delivery_data: '' }
+];
+const fallbackReviews = [];
+const fallbackChatMessages = [
+    { id: 1, sender_id: 2, receiver_id: 1, message: 'Halo admin, apakah pesanan saya sudah diproses?', is_read: 1, created_at: new Date(Date.now() - 7200000).toISOString() },
+    { id: 2, sender_id: 1, receiver_id: 2, message: 'Halo! Sudah diproses ya, silakan cek detail akun di menu pesanan.', is_read: 1, created_at: new Date(Date.now() - 3600000).toISOString() }
+];
+
 function createFallbackDb() {
     console.log('Using in-memory fallback database engine');
-    const users = [
-        { id: 1, username: 'admin', email: 'admin@nexplay.com', password: bcrypt.hashSync('admin123', 10), role: 'admin', created_at: new Date().toISOString() },
-        { id: 2, username: 'user1', email: 'user1@nexplay.com', password: bcrypt.hashSync('user123', 10), role: 'user', created_at: new Date().toISOString() },
-        { id: 3, username: 'gamer99', email: 'gamer99@nexplay.com', password: bcrypt.hashSync('user123', 10), role: 'user', created_at: new Date().toISOString() },
-        { id: 4, username: 'seller1', email: 'seller1@nexplay.com', password: bcrypt.hashSync('seller123', 10), role: 'seller', created_at: new Date().toISOString() }
-    ];
-
-    const prodCols = ['id', 'name', 'description', 'price', 'category', 'image_url', 'stock', 'rating', 'platform', 'developer', 'release_year', 'featured', 'seller_id', 'discount_percentage'];
-    const products = DEFAULT_PRODUCTS.map(p => {
-        const obj = {};
-        prodCols.forEach((col, idx) => { obj[col] = p[idx]; });
-        return obj;
-    });
-
-    const vouchers = [
-        { id: 1, code: 'HEMAT10', discount_type: 'percentage', discount_value: 10, min_purchase: 50000, usage_limit: 100, used_count: 0, valid_until: '2026-12-31', is_active: 1, created_at: new Date().toISOString() },
-        { id: 2, code: 'NEXPLAY25', discount_type: 'fixed', discount_value: 25000, min_purchase: 100000, usage_limit: 50, used_count: 0, valid_until: '2026-12-31', is_active: 1, created_at: new Date().toISOString() },
-        { id: 3, code: 'HEMAT30', discount_type: 'percentage', discount_value: 30, min_purchase: 0, usage_limit: 100, used_count: 1, valid_until: '2026-12-31', is_active: 1, created_at: new Date().toISOString() }
-    ];
-
-    const cartItems = [];
-    const orders = [
-        { id: 1, user_id: 2, total_amount: 498000, payment_method: 'qris', payment_status: 'success', order_code: 'NXP-DEMO-001', voucher_code: 'HEMAT10', voucher_discount: 49800, created_at: new Date(Date.now() - 3600000).toISOString() },
-        { id: 2, user_id: 3, total_amount: 299000, payment_method: 'bca_va', payment_status: 'pending', order_code: 'NXP-DEMO-002', voucher_code: '', voucher_discount: 0, created_at: new Date(Date.now() - 1800000).toISOString() }
-    ];
-    const orderItems = [
-        { id: 1, order_id: 1, product_id: 1, quantity: 1, price: 299000, seller_id: 1, admin_commission: 59800, seller_commission: 239200, fulfillment_status: 'siap_diproses', delivery_data: 'Akun: user1@demo.com | Pass: demo123' },
-        { id: 2, order_id: 1, product_id: 2, quantity: 1, price: 199000, seller_id: 1, admin_commission: 39800, seller_commission: 159200, fulfillment_status: 'siap_diproses', delivery_data: 'Serial Key: W3-ABCD-1234-XYZ' },
-        { id: 3, order_id: 2, product_id: 1, quantity: 1, price: 299000, seller_id: 1, admin_commission: 59800, seller_commission: 239200, fulfillment_status: 'menunggu_seller', delivery_data: '' }
-    ];
-    const reviews = [];
-    const chatMessages = [
-        { id: 1, sender_id: 2, receiver_id: 1, message: 'Halo admin, apakah pesanan saya sudah diproses?', is_read: 1, created_at: new Date(Date.now() - 7200000).toISOString() },
-        { id: 2, sender_id: 1, receiver_id: 2, message: 'Halo! Sudah diproses ya, silakan cek detail akun di menu pesanan.', is_read: 1, created_at: new Date(Date.now() - 3600000).toISOString() }
-    ];
+    const users = fallbackUsers;
+    const prodCols = fallbackProdCols;
+    const products = fallbackProducts;
+    const vouchers = fallbackVouchers;
+    const cartItems = fallbackCartItems;
+    const orders = fallbackOrders;
+    const orderItems = fallbackOrderItems;
+    const reviews = fallbackReviews;
+    const chatMessages = fallbackChatMessages;
 
     return {
+        isFallback: true,
         exec(sql, params = []) {
             sql = (sql || '').trim();
 
@@ -857,11 +868,14 @@ function getDb() {
 }
 
 function saveDatabase() {
-    if (db && typeof db.export === 'function') {
+    if (db && typeof db.export === 'function' && !db.isFallback) {
         try {
             const data = db.export();
-            const buffer = Buffer.from(data);
-            fs.writeFileSync(DB_PATH, buffer);
+            if (data && data.byteLength > 1024) {
+                const buffer = Buffer.from(data);
+                const targetPath = IS_VERCEL ? TMP_DB_PATH : DB_PATH;
+                fs.writeFileSync(targetPath, buffer);
+            }
         } catch (e) { /* ignore */ }
     }
 }
