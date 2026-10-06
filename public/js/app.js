@@ -217,6 +217,17 @@ const ReviewStore = {
     }
 };
 
+// ── Security Helpers ──
+function escapeHTML(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 // ── Toast Notifications ──
 function showToast(message, type = 'info') {
     let container = document.querySelector('.toast-container');
@@ -338,7 +349,7 @@ function updateNavUI() {
                 <div class="user-avatar" id="user-avatar-btn">${initial}</div>
                 <div class="dropdown-menu" id="user-dropdown">
                     <div style="padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:6px;">
-                        <div style="font-weight:600;color:var(--text-primary)">${AppState.user.username}</div>
+                        <div style="font-weight:600;color:var(--text-primary)">${escapeHTML(AppState.user.username)}</div>
                         <div style="font-size:0.8rem;color:var(--text-muted)">${AppState.user.role === 'admin' ? '<i data-lucide="crown" style="width:14px;height:14px"></i> Admin' : '<i data-lucide="user" style="width:14px;height:14px"></i> User'}</div>
                     </div>
                     ${AppState.user.role === 'admin' ? '<a href="/admin/dashboard.html"><i data-lucide="layout-dashboard" style="width:16px;height:16px"></i> Admin Dashboard</a>' : ''}
@@ -510,12 +521,12 @@ function renderProductCard(product) {
             <div class="card-image">
                 ${imgTag}
                 <div class="placeholder-img" style="${placeholderDisplay}">${getCategoryIcon(product.category)}</div>
-                <span class="category-badge ${product.category}">${product.category}</span>
+                <span class="category-badge ${escapeHTML(product.category)}">${escapeHTML(product.category)}</span>
                 <span class="rating-badge"><i data-lucide="star" style="width:14px;height:14px;color:orange;margin-bottom:-2px;fill:orange"></i> ${Number(product.rating).toFixed(1)}</span>
             </div>
             <div class="card-body">
-                <h4>${product.name}</h4>
-                <div class="developer">${product.developer || product.platform}</div>
+                <h4>${escapeHTML(product.name)}</h4>
+                <div class="developer">${escapeHTML(product.developer || product.platform)}</div>
             </div>
             <div class="card-footer" style="align-items:flex-end;">
                 ${priceHtml}

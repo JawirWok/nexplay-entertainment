@@ -291,10 +291,10 @@
                         ${new Date(t.created_at).toLocaleDateString('id-ID')}
                         <small style="display:block">${new Date(t.created_at).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'})}</small>
                     </td>
-                    <td><span style="font-weight:600">${t.buyer_name}</span></td>
+                    <td><span style="font-weight:600">${typeof escapeHTML === 'function' ? escapeHTML(t.buyer_name) : t.buyer_name}</span></td>
                     <td>
-                        <span style="font-weight:600;color:var(--text-primary)">${t.product_name}</span>
-                        <span style="display:block;font-size:0.75rem;color:var(--text-muted)">Penjual: <strong>${t.seller_name}</strong></span>
+                        <span style="font-weight:600;color:var(--text-primary)">${typeof escapeHTML === 'function' ? escapeHTML(t.product_name) : t.product_name}</span>
+                        <span style="display:block;font-size:0.75rem;color:var(--text-muted)">Penjual: <strong>${typeof escapeHTML === 'function' ? escapeHTML(t.seller_name) : t.seller_name}</strong></span>
                     </td>
                     <td style="text-align:center;font-weight:600">${t.quantity}</td>
                     <td style="text-align:right;font-weight:600">${formatRupiah(t.price * t.quantity)}</td>

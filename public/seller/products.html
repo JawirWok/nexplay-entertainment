@@ -201,8 +201,8 @@
                             ${p.image_url ? `<img src="${p.image_url}" alt="${p.name}" style="width:40px;height:40px;border-radius:6px;object-fit:cover;border:var(--border-medium);flex-shrink:0" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">` : ''}
                             <span style="${p.image_url ? 'display:none;' : ''}font-size:1.3rem">${getCategoryIcon(p.category)}</span>
                             <div>
-                                <div style="font-weight:600;color:var(--text-primary)">${p.name}</div>
-                                <div style="font-size:0.8rem;color:var(--text-muted)">${p.developer || '-'}</div>
+                                <div style="font-weight:600;color:var(--text-primary)">${typeof escapeHTML === 'function' ? escapeHTML(p.name) : p.name}</div>
+                                <div style="font-size:0.8rem;color:var(--text-muted)">${typeof escapeHTML === 'function' ? escapeHTML(p.developer) : p.developer || '-'}</div>
                             </div>
                         </div>
                     </td>

@@ -131,7 +131,7 @@
                         <tbody>
                             ${soldProducts.map(p => `
                                 <tr>
-                                    <td><span style="font-weight:600;color:var(--text-primary)">${p.name}</span></td>
+                                    <td><span style="font-weight:600;color:var(--text-primary)">${typeof escapeHTML === 'function' ? escapeHTML(p.name) : p.name}</span></td>
                                     <td style="text-align:center">${p.qty}</td>
                                     <td style="text-align:right;font-weight:600;color:var(--accent-green)">${formatRupiah(p.revenue)}</td>
                                 </tr>

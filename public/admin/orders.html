@@ -129,7 +129,7 @@
                             <span style="font-weight:700;color:var(--text-primary);font-family:var(--font-heading);font-size:0.85rem">${o.order_code}</span>
                             ${o.voucher_code ? `<span style="display:block;font-size:0.75rem;color:var(--accent-green)">🎟️ ${o.voucher_code}</span>` : ''}
                         </td>
-                        <td>${o.username || 'User #' + o.user_id}</td>
+                        <td>${typeof escapeHTML === 'function' ? escapeHTML(o.username) : o.username || 'User #' + o.user_id}</td>
                         <td>
                             <div style="font-weight:600">${items.length} item</div>
                             <div style="margin-top:2px">${fulfillmentBadge}</div>

@@ -172,12 +172,12 @@
                             ${orders.map(o => `
                                 <tr>
                                     <td><span style="font-weight:700;color:var(--text-primary);font-family:var(--font-heading)">${o.order_code}</span></td>
-                                    <td>${o.username || 'User #' + o.user_id}</td>
+                                    <td>${typeof escapeHTML === 'function' ? escapeHTML(o.username) : o.username || 'User #' + o.user_id}</td>
                                     <td style="font-weight:600">${formatRupiah(o.total_amount)}</td>
                                     <td>${o.payment_method || '-'}</td>
                                     <td style="max-width:200px;font-size:0.85rem">
                                         <ul style="margin:0;padding-left:16px">
-                                            ${o.items.map(i => `<li>${i.name} (x${i.quantity})</li>`).join('')}
+                                            ${o.items.map(i => `<li>${typeof escapeHTML === 'function' ? escapeHTML(i.name) : i.name} (x${i.quantity})</li>`).join('')}
                                         </ul>
                                     </td>
                                     <td><span class="order-status status-${o.payment_status}">${o.payment_status}</span></td>
