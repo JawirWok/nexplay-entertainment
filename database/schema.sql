@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS products (
     featured INTEGER DEFAULT 0,
     seller_id INTEGER DEFAULT 1,
     discount_percentage INTEGER DEFAULT 0,
+    approval_status TEXT DEFAULT 'approved' CHECK(approval_status IN ('pending', 'approved', 'rejected')),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (seller_id) REFERENCES users(id)
 );

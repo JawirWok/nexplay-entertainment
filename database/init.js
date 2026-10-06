@@ -64,6 +64,7 @@ CREATE TABLE IF NOT EXISTS products (
     featured INTEGER DEFAULT 0,
     seller_id INTEGER DEFAULT 1,
     discount_percentage INTEGER DEFAULT 0,
+    approval_status TEXT DEFAULT 'approved' CHECK(approval_status IN ('pending', 'approved', 'rejected')),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (seller_id) REFERENCES users(id)
 );
@@ -882,6 +883,13 @@ async function initDatabase() {
             if (!reviewCols.includes('is_anonymous')) {
                 db.run('ALTER TABLE reviews ADD COLUMN is_anonymous INTEGER DEFAULT 0');
                 console.log('⚡ Migration: added is_anonymous to reviews');
+            }
+
+            // Check products approval_status column
+            const prodCols2 = db.exec('PRAGMA table_info(products)')[0].values.map(v => v[1]);
+            if (!prodCols2.includes('approval_status')) {
+                db.run("ALTER TABLE products ADD COLUMN approval_status TEXT DEFAULT 'approved'");
+                console.log('⚡ Migration: added approval_status to products');
             }
         } catch (e) {
             console.warn('Migration check note:', e.message);

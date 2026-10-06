@@ -7,6 +7,46 @@
     <title>Kelola Produk — Admin NexPlay</title>
     <link rel="stylesheet" href="/css/style.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎮</text></svg>">
+    <style>
+        .approval-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .approval-pending {
+            background: rgba(255, 165, 0, 0.15);
+            color: #ffa500;
+            border: 1px solid rgba(255, 165, 0, 0.3);
+        }
+        .approval-approved {
+            background: rgba(0, 184, 148, 0.15);
+            color: #00b894;
+            border: 1px solid rgba(0, 184, 148, 0.3);
+        }
+        .approval-rejected {
+            background: rgba(255, 71, 87, 0.15);
+            color: #ff4757;
+            border: 1px solid rgba(255, 71, 87, 0.3);
+        }
+        .pending-count-badge {
+            background: #ff4757;
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 800;
+            padding: 2px 7px;
+            border-radius: 12px;
+            margin-left: 6px;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar">
@@ -45,12 +85,20 @@
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;flex-wrap:wrap;gap:16px">
                     <div>
                         <h2><i data-lucide="package" style="width:24px;height:24px;display:inline-block;vertical-align:middle;margin-right:8px;color:var(--accent-primary)"></i> Kelola <span class="text-gradient">Produk</span></h2>
-                        <p style="color:var(--text-secondary)">Tambah, edit, dan hapus produk digital</p>
+                        <p style="color:var(--text-secondary)">Tambah, edit, approve/reject produk seller, dan kelola semua produk digital</p>
                     </div>
                     <button class="btn btn-primary" onclick="openAddModal()"><i data-lucide="plus" style="width:18px;height:18px;margin-bottom:-4px"></i> Tambah Produk</button>
                 </div>
 
-                <!-- Filter -->
+                <!-- Approval Status Filter -->
+                <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap" id="status-filters">
+                    <button class="btn btn-secondary btn-sm active" data-status="all" onclick="setStatusFilter('all')">📦 Semua</button>
+                    <button class="btn btn-secondary btn-sm" data-status="pending" onclick="setStatusFilter('pending')">⏳ Menunggu Approval <span id="pending-count-badge" class="pending-count-badge" style="display:none">0</span></button>
+                    <button class="btn btn-secondary btn-sm" data-status="approved" onclick="setStatusFilter('approved')">✅ Disetujui</button>
+                    <button class="btn btn-secondary btn-sm" data-status="rejected" onclick="setStatusFilter('rejected')">❌ Ditolak</button>
+                </div>
+
+                <!-- Category Filter -->
                 <div style="display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap" id="category-filters">
                     <button class="btn btn-secondary btn-sm active" data-cat="" onclick="setFilterCategory('')">Semua Kategori</button>
                     <button class="btn btn-secondary btn-sm" data-cat="game" onclick="setFilterCategory('game')">🎮 Games</button>
@@ -59,6 +107,7 @@
                     <button class="btn btn-secondary btn-sm" data-cat="ebook" onclick="setFilterCategory('ebook')">📚 eBook</button>
                     <input type="text" class="form-control" style="width:auto;min-width:250px;margin-left:auto" placeholder="🔍 Cari produk..." id="search-product" oninput="debounceSearch()">
                     <input type="hidden" id="filter-category" value="">
+                    <input type="hidden" id="filter-status" value="all">
                 </div>
 
                 <div class="glass-card" style="padding:0;overflow-x:auto">
@@ -68,16 +117,17 @@
                                 <th>ID</th>
                                 <th>Produk</th>
                                 <th>Kategori</th>
-                                <th>Harga</th>
+                                <th>Harga (incl. PPN)</th>
                                 <th>Diskon</th>
                                 <th>Stok</th>
                                 <th>Rating</th>
+                                <th>Status</th>
                                 <th>Featured</th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>
                         <tbody id="products-tbody">
-                            <tr><td colspan="9" style="text-align:center;padding:32px"><div class="loading-spinner"></div></td></tr>
+                            <tr><td colspan="10" style="text-align:center;padding:32px"><div class="loading-spinner"></div></td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -109,7 +159,7 @@
                             </div>
                         </div>
                         <div class="form-group">
-                            <label for="p-price">Harga (Rp) *</label>
+                            <label for="p-price">Harga Dasar (Rp) * <small style="color:var(--text-muted)">(PPN 11% otomatis)</small></label>
                             <input type="number" id="p-price" class="form-control" required min="0">
                         </div>
                         <div class="form-group">
@@ -160,6 +210,7 @@
     <script>
         let editingProductId = null;
         let searchTimer;
+        let currentStatusFilter = 'all';
 
         function debounceSearch() {
             clearTimeout(searchTimer);
@@ -174,17 +225,44 @@
             loadProducts();
         }
 
+        function setStatusFilter(status) {
+            currentStatusFilter = status;
+            document.getElementById('filter-status').value = status;
+            document.querySelectorAll('#status-filters .btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.status === status);
+            });
+            loadProducts();
+        }
+
         async function loadProducts() {
             try {
                 const category = document.getElementById('filter-category').value;
                 const search = document.getElementById('search-product').value;
 
                 let url = '/api/products?';
+                if (currentStatusFilter === 'all') {
+                    url += 'status=all&';
+                } else {
+                    url += `status=${currentStatusFilter}&`;
+                }
                 if (category) url += `category=${category}&`;
                 if (search) url += `search=${encodeURIComponent(search)}&`;
 
                 const data = await API.get(url);
                 renderProducts(data.products);
+
+                // Update pending count badge
+                try {
+                    const pendingData = await API.get('/api/products/pending');
+                    const pendingCount = (pendingData.products || []).length;
+                    const badge = document.getElementById('pending-count-badge');
+                    if (pendingCount > 0) {
+                        badge.textContent = pendingCount;
+                        badge.style.display = 'inline-block';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                } catch(e) {}
             } catch (err) {
                 if (err.message.includes('Unauthorized') || err.message.includes('Forbidden')) {
                     window.location.href = '/login.html';
@@ -198,15 +276,39 @@
             const tbody = document.getElementById('products-tbody');
 
             if (products.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--text-muted)">Tidak ada produk ditemukan</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:32px;color:var(--text-muted)">Tidak ada produk ditemukan</td></tr>`;
                 return;
             }
 
             tbody.innerHTML = products.map(p => {
                 const hasDiscount = p.discount_percentage > 0;
                 const finalPrice = hasDiscount ? p.price - (p.price * p.discount_percentage / 100) : p.price;
+                const approvalStatus = p.approval_status || 'approved';
+                
+                let statusBadge = '';
+                if (approvalStatus === 'pending') {
+                    statusBadge = `<span class="approval-badge approval-pending">⏳ Pending</span>`;
+                } else if (approvalStatus === 'approved') {
+                    statusBadge = `<span class="approval-badge approval-approved">✅ Approved</span>`;
+                } else {
+                    statusBadge = `<span class="approval-badge approval-rejected">❌ Rejected</span>`;
+                }
+
+                let actionBtns = `
+                    <button class="btn btn-secondary btn-sm" onclick="openEditModal(${p.id})">✏️</button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteProduct(${p.id}, '${p.name.replace(/'/g, "\\\'")}')">🗑️</button>
+                `;
+
+                if (approvalStatus === 'pending') {
+                    actionBtns = `
+                        <button class="btn btn-primary btn-sm" onclick="approveProduct(${p.id})" title="Setujui & Tambah PPN">✅ ACC</button>
+                        <button class="btn btn-danger btn-sm" onclick="rejectProduct(${p.id})" title="Tolak">❌</button>
+                        ${actionBtns}
+                    `;
+                }
+
                 return `
-                <tr>
+                <tr style="${approvalStatus === 'pending' ? 'background:rgba(255,165,0,0.03)' : ''}">
                     <td style="color:var(--text-muted)">#${p.id}</td>
                     <td>
                         <div style="display:flex;align-items:center;gap:12px">
@@ -224,19 +326,42 @@
                             <div style="text-decoration:line-through;font-size:0.8rem;color:var(--text-muted)">${formatRupiah(p.price)}</div>
                             <div style="color:#ff4757">${formatRupiah(finalPrice)}</div>
                         ` : formatRupiah(p.price)}
+                        <div style="font-size:0.68rem;color:var(--accent-cyan)">incl. PPN 11%</div>
                     </td>
                     <td><span style="color:#ff4757;font-weight:600">${p.discount_percentage || 0}%</span></td>
                     <td>${p.stock}</td>
                     <td>⭐ ${Number(p.rating).toFixed(1)}</td>
+                    <td>${statusBadge}</td>
                     <td>${p.featured ? '✅' : '—'}</td>
                     <td>
-                        <div style="display:flex;gap:6px">
-                            <button class="btn btn-secondary btn-sm" onclick="openEditModal(${p.id})">✏️</button>
-                            <button class="btn btn-danger btn-sm" onclick="deleteProduct(${p.id}, '${p.name.replace(/'/g, "\\'")}')">🗑️</button>
+                        <div style="display:flex;gap:6px;flex-wrap:wrap">
+                            ${actionBtns}
                         </div>
                     </td>
                 </tr>
             `}).join('');
+        }
+
+        async function approveProduct(id) {
+            if (!confirm('Setujui produk ini? Harga akan ditambahkan PPN 11% dan produk akan dirilis ke toko.')) return;
+            try {
+                const res = await API.put(`/api/products/${id}/approve`);
+                showToast(res.message || 'Produk disetujui!', 'success');
+                loadProducts();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        async function rejectProduct(id) {
+            const reason = prompt('Alasan penolakan (opsional):');
+            try {
+                const res = await API.put(`/api/products/${id}/reject`, { reason: reason || '' });
+                showToast(res.message || 'Produk ditolak', 'info');
+                loadProducts();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
         }
 
         function openAddModal() {
@@ -304,8 +429,8 @@
                     await API.put(`/api/products/${editingProductId}`, productData);
                     showToast('Produk berhasil diupdate! ✅', 'success');
                 } else {
-                    await API.post('/api/products', productData);
-                    showToast('Produk berhasil ditambahkan! ✅', 'success');
+                    const res = await API.post('/api/products', productData);
+                    showToast(res.message || 'Produk berhasil ditambahkan! ✅', 'success');
                 }
 
                 closeModal();
@@ -334,7 +459,6 @@
     <script>
         if (window.lucide) {
             lucide.createIcons();
-            // Automatically update icons when DOM changes (for dynamic content)
             const observer = new MutationObserver((mutations) => {
                 let shouldUpdate = false;
                 for (let m of mutations) {
@@ -344,7 +468,7 @@
                     }
                 }
                 if (shouldUpdate) {
-                    observer.disconnect(); // Prevent infinite loops
+                    observer.disconnect();
                     lucide.createIcons();
                     observer.observe(document.body, { childList: true, subtree: true });
                 }

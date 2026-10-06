@@ -3,23 +3,40 @@ const { getDb, saveDatabase } = require('../database/init');
 const { isAuthenticated, isAdmin, isSellerOrAdmin } = require('../middleware/auth');
 const router = express.Router();
 
+const PPN_RATE = 0.11; // 11% PPN
+
 // GET /api/products - List all products (with filter & search)
 router.get('/', (req, res) => {
     try {
         const db = getDb();
-        const { category, search, featured, sort, seller_id } = req.query;
+        const { category, search, featured, sort, seller_id, status } = req.query;
 
         let query = 'SELECT * FROM products WHERE 1=1';
         const params = [];
 
-        if (category) {
-            query += ' AND category = ?';
-            params.push(category);
-        }
-
+        // For public listing, only show approved products
+        // Seller/admin can see their own products regardless of status
         if (seller_id) {
             query += ' AND seller_id = ?';
             params.push(seller_id);
+            // If status filter is provided (for seller/admin view)
+            if (status) {
+                query += ' AND approval_status = ?';
+                params.push(status);
+            }
+        } else if (status === 'all') {
+            // Admin can see all products
+        } else if (status) {
+            query += ' AND approval_status = ?';
+            params.push(status);
+        } else {
+            // Default: only show approved products to public
+            query += " AND (approval_status = 'approved' OR approval_status IS NULL)";
+        }
+
+        if (category) {
+            query += ' AND category = ?';
+            params.push(category);
         }
 
         if (search) {
@@ -64,6 +81,92 @@ router.get('/', (req, res) => {
     }
 });
 
+// GET /api/products/pending - Get pending products for admin approval
+router.get('/pending', isAdmin, (req, res) => {
+    try {
+        const db = getDb();
+        const result = db.exec(`
+            SELECT p.*, u.username as seller_name 
+            FROM products p 
+            LEFT JOIN users u ON p.seller_id = u.id 
+            WHERE p.approval_status = 'pending' 
+            ORDER BY p.created_at DESC
+        `);
+
+        if (result.length === 0) {
+            return res.json({ products: [] });
+        }
+
+        const columns = result[0].columns;
+        const products = result[0].values.map(row => {
+            const product = {};
+            columns.forEach((col, i) => { product[col] = row[i]; });
+            return product;
+        });
+
+        res.json({ products });
+    } catch (err) {
+        console.error('Get pending products error:', err);
+        res.status(500).json({ error: 'Internal server error.' });
+    }
+});
+
+// PUT /api/products/:id/approve - Admin approves a product (adds PPN to price)
+router.put('/:id/approve', isAdmin, (req, res) => {
+    try {
+        const db = getDb();
+        const productResult = db.exec('SELECT * FROM products WHERE id = ?', [req.params.id]);
+        
+        if (productResult.length === 0 || productResult[0].values.length === 0) {
+            return res.status(404).json({ error: 'Product not found.' });
+        }
+
+        const columns = productResult[0].columns;
+        const row = productResult[0].values[0];
+        const product = {};
+        columns.forEach((col, i) => { product[col] = row[i]; });
+
+        // Add PPN 11% to the base price
+        const basePrice = product.price;
+        const ppnAmount = Math.round(basePrice * PPN_RATE);
+        const finalPrice = basePrice + ppnAmount;
+
+        db.run("UPDATE products SET approval_status = 'approved', price = ? WHERE id = ?", [finalPrice, req.params.id]);
+        saveDatabase();
+
+        res.json({ 
+            message: `Produk "${product.name}" berhasil disetujui! Harga asli: Rp ${basePrice.toLocaleString('id-ID')} + PPN 11%: Rp ${ppnAmount.toLocaleString('id-ID')} = Rp ${finalPrice.toLocaleString('id-ID')}`,
+            base_price: basePrice,
+            ppn_amount: ppnAmount,
+            final_price: finalPrice
+        });
+    } catch (err) {
+        console.error('Approve product error:', err);
+        res.status(500).json({ error: 'Internal server error.' });
+    }
+});
+
+// PUT /api/products/:id/reject - Admin rejects a product
+router.put('/:id/reject', isAdmin, (req, res) => {
+    try {
+        const db = getDb();
+        const { reason } = req.body;
+        
+        const existing = db.exec('SELECT name FROM products WHERE id = ?', [req.params.id]);
+        if (existing.length === 0 || existing[0].values.length === 0) {
+            return res.status(404).json({ error: 'Product not found.' });
+        }
+
+        db.run("UPDATE products SET approval_status = 'rejected' WHERE id = ?", [req.params.id]);
+        saveDatabase();
+
+        res.json({ message: `Produk ditolak.${reason ? ' Alasan: ' + reason : ''}` });
+    } catch (err) {
+        console.error('Reject product error:', err);
+        res.status(500).json({ error: 'Internal server error.' });
+    }
+});
+
 // GET /api/products/:id - Product detail
 router.get('/:id', (req, res) => {
     try {
@@ -96,11 +199,21 @@ router.post('/', isSellerOrAdmin, (req, res) => {
         }
 
         const db = getDb();
-        const seller_id = req.session.role === 'admin' ? (req.body.seller_id || req.session.userId) : req.session.userId;
+        const isAdminUser = req.session.role === 'admin';
+        const seller_id = isAdminUser ? (req.body.seller_id || req.session.userId) : req.session.userId;
+        
+        // Admin products are auto-approved, seller products need approval
+        const approvalStatus = isAdminUser ? 'approved' : 'pending';
+        
+        // If admin creates product, apply PPN immediately. If seller, store base price.
+        let finalPrice = price;
+        if (isAdminUser) {
+            finalPrice = Math.round(price + (price * PPN_RATE));
+        }
 
-        db.run(`INSERT INTO products (name, description, price, category, image_url, stock, rating, platform, developer, release_year, featured, seller_id, discount_percentage)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [name, description || '', price, category, image_url || '', stock || 100, rating || 0, platform || '', developer || '', release_year || 2024, featured || 0, seller_id, discount_percentage || 0]);
+        db.run(`INSERT INTO products (name, description, price, category, image_url, stock, rating, platform, developer, release_year, featured, seller_id, discount_percentage, approval_status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [name, description || '', finalPrice, category, image_url || '', stock || 100, rating || 0, platform || '', developer || '', release_year || 2024, featured || 0, seller_id, discount_percentage || 0, approvalStatus]);
         saveDatabase();
 
         const newProduct = db.exec('SELECT * FROM products ORDER BY id DESC LIMIT 1');
@@ -109,7 +222,11 @@ router.post('/', isSellerOrAdmin, (req, res) => {
         const product = {};
         columns.forEach((col, i) => { product[col] = row[i]; });
 
-        res.status(201).json({ message: 'Product created successfully', product });
+        const msg = isAdminUser 
+            ? `Produk berhasil ditambahkan! (Harga sudah termasuk PPN 11%)` 
+            : `Produk berhasil diajukan! Menunggu persetujuan admin sebelum produk dirilis ke toko.`;
+
+        res.status(201).json({ message: msg, product });
     } catch (err) {
         console.error('Create product error:', err);
         res.status(500).json({ error: 'Internal server error.' });
@@ -123,7 +240,7 @@ router.put('/:id', isSellerOrAdmin, (req, res) => {
         const db = getDb();
 
         // Check if product exists
-        const existing = db.exec('SELECT id, seller_id FROM products WHERE id = ?', [req.params.id]);
+        const existing = db.exec('SELECT id, seller_id, approval_status FROM products WHERE id = ?', [req.params.id]);
         if (existing.length === 0 || existing[0].values.length === 0) {
             return res.status(404).json({ error: 'Product not found.' });
         }
@@ -133,11 +250,18 @@ router.put('/:id', isSellerOrAdmin, (req, res) => {
             return res.status(403).json({ error: 'Forbidden. You can only update your own products.' });
         }
 
-        db.run(`UPDATE products SET name=?, description=?, price=?, category=?, image_url=?, stock=?, rating=?, platform=?, developer=?, release_year=?, featured=?, discount_percentage=? WHERE id=?`,
-            [name, description, price, category, image_url, stock, rating, platform, developer, release_year, featured, discount_percentage || 0, req.params.id]);
+        // If seller edits, reset to pending for re-approval
+        const isAdminUser = req.session.role === 'admin';
+        let newApprovalStatus = isAdminUser ? (req.body.approval_status || 'approved') : 'pending';
+        
+        db.run(`UPDATE products SET name=?, description=?, price=?, category=?, image_url=?, stock=?, rating=?, platform=?, developer=?, release_year=?, featured=?, discount_percentage=?, approval_status=? WHERE id=?`,
+            [name, description, price, category, image_url, stock, rating, platform, developer, release_year, featured, discount_percentage || 0, newApprovalStatus, req.params.id]);
         saveDatabase();
 
-        res.json({ message: 'Product updated successfully' });
+        const msg = isAdminUser 
+            ? 'Produk berhasil diupdate' 
+            : 'Produk berhasil diupdate. Menunggu persetujuan ulang dari admin.';
+        res.json({ message: msg });
     } catch (err) {
         console.error('Update product error:', err);
         res.status(500).json({ error: 'Internal server error.' });

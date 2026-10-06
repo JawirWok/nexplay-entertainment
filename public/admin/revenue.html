@@ -14,6 +14,31 @@
             .admin-content { padding: 0 !important; width: 100% !important; }
             .glass-card { border: 1px solid #ddd !important; box-shadow: none !important; }
         }
+        .date-filter-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .date-filter-row input[type="date"] {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+        .date-filter-row input[type="date"]:focus {
+            outline: none;
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 0 2px rgba(0, 210, 255, 0.15);
+        }
+        .date-filter-row label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
@@ -60,13 +85,26 @@
                     </div>
                 </div>
 
-                <!-- Timeframe Filter Buttons -->
-                <div class="no-print glass-card" style="padding:14px 20px;margin-bottom:24px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-                    <span style="font-weight:600;font-size:0.9rem;color:var(--text-secondary)">Filter Waktu:</span>
-                    <button class="btn btn-secondary btn-sm filter-btn active" data-range="all" onclick="setFilter('all', this)">Semua Waktu</button>
-                    <button class="btn btn-secondary btn-sm filter-btn" data-range="today" onclick="setFilter('today', this)">Hari Ini</button>
-                    <button class="btn btn-secondary btn-sm filter-btn" data-range="week" onclick="setFilter('week', this)">7 Hari Terakhir</button>
-                    <button class="btn btn-secondary btn-sm filter-btn" data-range="month" onclick="setFilter('month', this)">Bulan Ini</button>
+                <!-- Quick Filter Buttons -->
+                <div class="no-print glass-card" style="padding:14px 20px;margin-bottom:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+                    <span style="font-weight:600;font-size:0.9rem;color:var(--text-secondary)">Filter Cepat:</span>
+                    <button class="btn btn-secondary btn-sm filter-btn active" data-range="all" onclick="setQuickFilter('all', this)">Semua Waktu</button>
+                    <button class="btn btn-secondary btn-sm filter-btn" data-range="today" onclick="setQuickFilter('today', this)">Hari Ini</button>
+                    <button class="btn btn-secondary btn-sm filter-btn" data-range="week" onclick="setQuickFilter('week', this)">7 Hari Terakhir</button>
+                    <button class="btn btn-secondary btn-sm filter-btn" data-range="month" onclick="setQuickFilter('month', this)">Bulan Ini</button>
+                </div>
+
+                <!-- Specific Date Filter -->
+                <div class="no-print glass-card" style="padding:14px 20px;margin-bottom:24px">
+                    <div class="date-filter-row">
+                        <span style="font-weight:600;font-size:0.9rem;color:var(--text-secondary)">📅 Filter Tanggal Spesifik:</span>
+                        <label>Dari:</label>
+                        <input type="date" id="date-from" onchange="applyDateFilter()">
+                        <label>Sampai:</label>
+                        <input type="date" id="date-to" onchange="applyDateFilter()">
+                        <button class="btn btn-primary btn-sm" onclick="applyDateFilter()">🔍 Terapkan</button>
+                        <button class="btn btn-secondary btn-sm" onclick="clearDateFilter()">✕ Reset</button>
+                    </div>
                 </div>
 
                 <!-- Summary Cards -->
@@ -91,6 +129,12 @@
                         <div class="stat-value" id="summary-voucher">-</div>
                         <div class="stat-label">Total Diskon Voucher</div>
                     </div>
+                </div>
+
+                <!-- Active Filter Indicator -->
+                <div id="active-filter-info" style="display:none;margin-bottom:16px;padding:10px 16px;background:rgba(0,210,255,0.08);border:1px solid rgba(0,210,255,0.2);border-radius:var(--radius-sm);color:var(--text-primary);font-size:0.88rem">
+                    <strong>📋 Filter aktif:</strong> <span id="filter-label"></span>
+                    <span style="margin-left:8px;font-weight:700" id="filter-count"></span>
                 </div>
 
                 <!-- Transaction Details Table -->
@@ -121,23 +165,94 @@
     <script src="/js/app.js"></script>
     <script>
         let currentRange = 'all';
+        let customDateFrom = '';
+        let customDateTo = '';
 
-        function setFilter(range, btn) {
+        function setQuickFilter(range, btn) {
             currentRange = range;
+            customDateFrom = '';
+            customDateTo = '';
+            document.getElementById('date-from').value = '';
+            document.getElementById('date-to').value = '';
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active', 'btn-primary'));
             btn.classList.add('active');
             loadRevenueData();
         }
 
+        function applyDateFilter() {
+            const dateFrom = document.getElementById('date-from').value;
+            const dateTo = document.getElementById('date-to').value;
+            
+            if (!dateFrom && !dateTo) {
+                showToast('Pilih minimal satu tanggal untuk filter', 'warning');
+                return;
+            }
+
+            customDateFrom = dateFrom;
+            customDateTo = dateTo;
+            currentRange = 'custom';
+
+            // Deactivate quick filter buttons
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+
+            loadRevenueData();
+        }
+
+        function clearDateFilter() {
+            customDateFrom = '';
+            customDateTo = '';
+            currentRange = 'all';
+            document.getElementById('date-from').value = '';
+            document.getElementById('date-to').value = '';
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector('.filter-btn[data-range="all"]').classList.add('active');
+            loadRevenueData();
+        }
+
         async function loadRevenueData() {
             try {
-                const data = await API.get(`/api/orders/revenue/detailed?range=${currentRange}`);
+                let url = '/api/orders/revenue/detailed?';
+                
+                if (customDateFrom || customDateTo) {
+                    if (customDateFrom) url += `date_from=${customDateFrom}&`;
+                    if (customDateTo) url += `date_to=${customDateTo}&`;
+                } else {
+                    url += `range=${currentRange}&`;
+                }
+
+                const data = await API.get(url);
                 const s = data.summary || { gross: 0, admin: 0, seller: 0, voucher: 0 };
 
                 document.getElementById('summary-gross').textContent = formatRupiah(s.gross);
                 document.getElementById('summary-admin').textContent = formatRupiah(s.admin);
                 document.getElementById('summary-seller').textContent = formatRupiah(s.seller);
                 document.getElementById('summary-voucher').textContent = formatRupiah(s.voucher);
+
+                // Show active filter info
+                const filterInfo = document.getElementById('active-filter-info');
+                const filterLabel = document.getElementById('filter-label');
+                const filterCount = document.getElementById('filter-count');
+                
+                if (customDateFrom || customDateTo) {
+                    filterInfo.style.display = 'block';
+                    let label = '';
+                    if (customDateFrom && customDateTo) {
+                        label = `${formatDateID(customDateFrom)} — ${formatDateID(customDateTo)}`;
+                    } else if (customDateFrom) {
+                        label = `Mulai dari ${formatDateID(customDateFrom)}`;
+                    } else {
+                        label = `Sampai ${formatDateID(customDateTo)}`;
+                    }
+                    filterLabel.textContent = label;
+                    filterCount.textContent = `(${(data.transactions || []).length} transaksi)`;
+                } else if (currentRange !== 'all') {
+                    filterInfo.style.display = 'block';
+                    const rangeLabels = { today: 'Hari Ini', week: '7 Hari Terakhir', month: 'Bulan Ini' };
+                    filterLabel.textContent = rangeLabels[currentRange] || currentRange;
+                    filterCount.textContent = `(${(data.transactions || []).length} transaksi)`;
+                } else {
+                    filterInfo.style.display = 'none';
+                }
 
                 renderTransactions(data.transactions || []);
             } catch (err) {
@@ -146,6 +261,14 @@
                     return;
                 }
                 showToast(err.message, 'error');
+            }
+        }
+
+        function formatDateID(dateStr) {
+            try {
+                return new Date(dateStr + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+            } catch(e) {
+                return dateStr;
             }
         }
 
@@ -190,7 +313,6 @@
     <script>
         if (window.lucide) {
             lucide.createIcons();
-            // Automatically update icons when DOM changes (for dynamic content)
             const observer = new MutationObserver((mutations) => {
                 let shouldUpdate = false;
                 for (let m of mutations) {
@@ -200,7 +322,7 @@
                     }
                 }
                 if (shouldUpdate) {
-                    observer.disconnect(); // Prevent infinite loops
+                    observer.disconnect();
                     lucide.createIcons();
                     observer.observe(document.body, { childList: true, subtree: true });
                 }

@@ -156,8 +156,11 @@ const ChatCache = {
         if (!msg) return;
         this.addMessage(msg);
     },
-    mergeMessages(serverMessages = []) {
-        const localMsgs = this.getAll();
+    mergeMessages(serverMessages = [], partnerId = null) {
+        let localMsgs = this.getAll();
+        if (partnerId) {
+            localMsgs = localMsgs.filter(m => m.sender_id == partnerId || m.receiver_id == partnerId);
+        }
         const map = new Map();
         for (const m of (serverMessages || [])) {
             if (m && m.id) map.set(String(m.id), m);
@@ -227,11 +230,23 @@ function showToast(message, type = 'info') {
 
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-    toast.innerHTML = `
-        <span class="toast-icon">${icons[type]}</span>
-        <span>${message}</span>
-        <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
-    `;
+    
+    // Create elements to prevent XSS
+    const iconSpan = document.createElement('span');
+    iconSpan.className = 'toast-icon';
+    iconSpan.textContent = icons[type];
+    
+    const msgSpan = document.createElement('span');
+    msgSpan.textContent = message;
+    
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'toast-close';
+    closeBtn.textContent = '✕';
+    closeBtn.onclick = function() { this.parentElement.remove(); };
+    
+    toast.appendChild(iconSpan);
+    toast.appendChild(msgSpan);
+    toast.appendChild(closeBtn);
 
     container.appendChild(toast);
     setTimeout(() => {

@@ -423,7 +423,7 @@
                         <div class="chat-conv-avatar">${c.role === 'seller' ? '🏪' : '👤'}</div>
                         <div class="chat-conv-info">
                             <div class="chat-conv-name">
-                                <span>${c.username}</span>
+                                <span>${escapeHtml(c.username)}</span>
                                 <span style="font-size:0.7rem;font-weight:normal;color:var(--text-muted)">${timeStr}</span>
                             </div>
                             <div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px">
@@ -477,7 +477,7 @@
                 const data = await API.get(`/api/chat/messages?user_id=${userId}`);
                 let messages = data.messages || [];
                 if (typeof ChatCache !== 'undefined') {
-                    messages = ChatCache.mergeMessages(messages);
+                    messages = ChatCache.mergeMessages(messages, userId);
                 }
                 renderMessages(messages, scrollToBottom);
             } catch (err) {

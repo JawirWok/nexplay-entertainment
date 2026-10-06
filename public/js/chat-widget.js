@@ -6,7 +6,7 @@
     let isOpen = false;
     let pollTimer = null;
     let unreadTimer = null;
-    const ADMIN_TARGET_ID = 1; // Admin user ID
+    let ADMIN_TARGET_ID = 1; // Default Admin user ID
 
     // Inject CSS for chat widget
     const style = document.createElement('style');
@@ -164,6 +164,14 @@
     async function initChatWidget() {
         try {
             if (typeof API === 'undefined') return;
+            
+            try {
+                const adminRes = await API.get('/api/chat/admin-id');
+                if (adminRes && adminRes.admin_id) {
+                    ADMIN_TARGET_ID = adminRes.admin_id;
+                }
+            } catch (e) {}
+
             const res = await API.get('/api/auth/me');
             if (!res || !res.user) return;
             currentUser = res.user;
@@ -285,7 +293,7 @@
             const data = await API.get(`/api/chat/messages?user_id=${ADMIN_TARGET_ID}`);
             let messages = data.messages || [];
             if (typeof ChatCache !== 'undefined') {
-                messages = ChatCache.mergeMessages(messages);
+                messages = ChatCache.mergeMessages(messages, ADMIN_TARGET_ID);
             }
             const container = document.getElementById('nex-chat-msgs');
             if (!container) return;

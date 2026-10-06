@@ -352,9 +352,21 @@ router.get('/stats/summary', isAdmin, (req, res) => {
 router.get('/revenue/detailed', isAdmin, (req, res) => {
     try {
         const db = getDb();
-        const { range } = req.query; // 'today', 'week', 'month', 'all'
+        const { range, date_from, date_to } = req.query;
         let dateFilter = '';
-        if (range === 'today') {
+        const filterParams = [];
+
+        // Specific date range filter takes priority
+        if (date_from && date_to) {
+            dateFilter = " AND date(o.created_at) >= ? AND date(o.created_at) <= ?";
+            filterParams.push(date_from, date_to);
+        } else if (date_from) {
+            dateFilter = " AND date(o.created_at) >= ?";
+            filterParams.push(date_from);
+        } else if (date_to) {
+            dateFilter = " AND date(o.created_at) <= ?";
+            filterParams.push(date_to);
+        } else if (range === 'today') {
             dateFilter = " AND date(o.created_at) = date('now', 'localtime')";
         } else if (range === 'week') {
             dateFilter = " AND date(o.created_at) >= date('now', '-7 days', 'localtime')";
@@ -377,7 +389,7 @@ router.get('/revenue/detailed', isAdmin, (req, res) => {
             ORDER BY o.created_at DESC
         `;
 
-        const result = db.exec(query);
+        const result = db.exec(query, filterParams);
         if (result.length === 0) {
             return res.json({ transactions: [], summary: { gross: 0, admin: 0, seller: 0, voucher: 0, count: 0 } });
         }
@@ -403,6 +415,7 @@ router.get('/revenue/detailed', isAdmin, (req, res) => {
         res.status(500).json({ error: 'Internal server error.' });
     }
 });
+
 
 // GET /api/orders/seller/orders - Seller's received orders
 router.get('/seller/orders', isAuthenticated, (req, res) => {

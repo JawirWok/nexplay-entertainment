@@ -14,6 +14,17 @@ function getAdminId(db) {
     return 1;
 }
 
+// GET /api/chat/admin-id - Get the admin user ID dynamically
+router.get('/admin-id', (req, res) => {
+    try {
+        const db = getDb();
+        const adminId = getAdminId(db);
+        res.json({ admin_id: adminId });
+    } catch (err) {
+        res.status(500).json({ error: 'Internal server error.' });
+    }
+});
+
 // GET /api/chat/unread-count - Get total unread messages count for current user
 router.get('/unread-count', isAuthenticated, (req, res) => {
     try {
@@ -172,14 +183,14 @@ router.get('/messages', isAuthenticated, (req, res) => {
             messages = result[0].values.map(row => {
                 const msg = {};
                 cols.forEach((col, i) => { msg[col] = row[i]; });
-                msg.is_mine = (msg.sender_id === currentUserId) ? 1 : 0;
+                msg.is_mine = (String(msg.sender_id) === String(currentUserId)) ? 1 : 0;
                 return msg;
             });
         }
 
         // Mark unread messages sent by partner as read
         if (isAdminUser) {
-            db.run('UPDATE chat_messages SET is_read = 1 WHERE sender_id = ? AND is_read = 0', [partnerId]);
+            db.run('UPDATE chat_messages SET is_read = 1 WHERE sender_id = ? AND receiver_id = ? AND is_read = 0', [partnerId, currentUserId]);
         } else {
             db.run('UPDATE chat_messages SET is_read = 1 WHERE sender_id IN (SELECT id FROM users WHERE role = "admin") AND receiver_id = ? AND is_read = 0', [currentUserId]);
         }
@@ -228,8 +239,9 @@ router.post('/messages', isAuthenticated, (req, res) => {
                    u.username as sender_username, u.role as sender_role
             FROM chat_messages cm
             LEFT JOIN users u ON cm.sender_id = u.id
+            WHERE cm.sender_id = ? AND cm.receiver_id = ?
             ORDER BY cm.id DESC LIMIT 1
-        `);
+        `, [currentUserId, targetReceiverId]);
 
         let newMessage = {
             sender_id: currentUserId,
