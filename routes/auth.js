@@ -1,6 +1,8 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const { getDb, saveDatabase } = require('../database/init');
+const jwt = require('jsonwebtoken');
+const JWT_SECRET = process.env.JWT_SECRET || 'nexplay-secret-jwt-key-2024';
 const router = express.Router();
 
 // POST /api/auth/register
@@ -39,6 +41,15 @@ router.post('/register', (req, res) => {
             role: newUser[0].values[0][3]
         };
 
+        const token = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
+        res.cookie('nexplay_jwt', token, {
+            httpOnly: true,
+            sameSite: 'Lax',
+            maxAge: 24 * 60 * 60 * 1000,
+            secure: process.env.NODE_ENV === 'production'
+        });
+
+        // Set mock session for this request
         req.session.userId = user.id;
         req.session.role = user.role;
 
@@ -72,6 +83,14 @@ router.post('/login', (req, res) => {
             return res.status(401).json({ error: 'Invalid username or password.' });
         }
 
+        const token = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
+        res.cookie('nexplay_jwt', token, {
+            httpOnly: true,
+            sameSite: 'Lax',
+            maxAge: 24 * 60 * 60 * 1000,
+            secure: process.env.NODE_ENV === 'production'
+        });
+
         req.session.userId = user.id;
         req.session.role = user.role;
 
@@ -87,17 +106,14 @@ router.post('/login', (req, res) => {
 
 // POST /api/auth/logout
 router.post('/logout', (req, res) => {
-    res.setHeader('Set-Cookie', [
-        `nexplay_uid=; Path=/; SameSite=Lax; Max-Age=0`,
-        `nexplay_role=; Path=/; SameSite=Lax; Max-Age=0`,
-        `connect.sid=; Path=/; SameSite=Lax; Max-Age=0`
-    ]);
-    req.session.destroy((err) => {
-        if (err) {
-            return res.status(500).json({ error: 'Logout failed.' });
-        }
-        res.json({ message: 'Logged out successfully.' });
-    });
+    res.clearCookie('nexplay_jwt', { path: '/', sameSite: 'Lax' });
+    // Also clear old cookies for backwards compatibility
+    res.clearCookie('nexplay_uid', { path: '/', sameSite: 'Lax' });
+    res.clearCookie('nexplay_role', { path: '/', sameSite: 'Lax' });
+    res.clearCookie('connect.sid', { path: '/', sameSite: 'Lax' });
+    
+    req.session = {};
+    res.json({ message: 'Logged out successfully.' });
 });
 
 // GET /api/auth/me

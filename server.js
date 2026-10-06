@@ -1,5 +1,5 @@
 const express = require('express');
-const session = require('express-session');
+const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
@@ -26,60 +26,36 @@ app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Session
-app.use(session({
-    secret: 'nexplay-secret-key-2024',
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-        maxAge: 24 * 60 * 60 * 1000, // 24 hours
-        httpOnly: true,
-        sameSite: 'lax',
-        secure: false
-    }
-}));
+app.use(cookieParser());
 
-// Serverless Session Bridge (ensures auth persists across Vercel Lambdas)
+const jwt = require('jsonwebtoken');
+const JWT_SECRET = process.env.JWT_SECRET || 'nexplay-secret-jwt-key-2024';
+
+// JWT Session Middleware
 app.use((req, res, next) => {
-    // 1. Recover session from custom header (sent by API client)
+    req.session = {}; // Mock express-session object
+
+    // 1. Recover from custom headers (API client / Vercel bypass)
     const headerUserId = req.headers['x-user-id'];
     const headerUserRole = req.headers['x-user-role'];
-    if (headerUserId && (!req.session || !req.session.userId)) {
-        if (!req.session) req.session = {};
+    if (headerUserId) {
         req.session.userId = parseInt(headerUserId, 10) || headerUserId;
         req.session.role = headerUserRole || (headerUserId == 1 ? 'admin' : 'user');
+        return next();
     }
 
-    // 2. Recover session from cookie
-    if ((!req.session || !req.session.userId) && req.headers.cookie) {
-        const uidMatch = req.headers.cookie.match(/nexplay_uid=([^;]+)/);
-        const roleMatch = req.headers.cookie.match(/nexplay_role=([^;]+)/);
-        if (uidMatch) {
-            if (!req.session) req.session = {};
-            req.session.userId = parseInt(uidMatch[1], 10) || uidMatch[1];
-            req.session.role = roleMatch ? roleMatch[1] : (req.session.userId == 1 ? 'admin' : 'user');
+    // 2. Recover from JWT cookie
+    const token = req.cookies?.nexplay_jwt;
+    if (token) {
+        try {
+            const decoded = jwt.verify(token, JWT_SECRET);
+            req.session.userId = decoded.userId;
+            req.session.role = decoded.role;
+        } catch (err) {
+            // Token invalid or expired
         }
     }
-
-    // 3. Attach session cookies on JSON responses when logged in
-    const origJson = res.json;
-    res.json = function(data) {
-        if (req.session && req.session.userId) {
-            const uid = req.session.userId;
-            const role = req.session.role || (uid == 1 ? 'admin' : 'user');
-            res.setHeader('Set-Cookie', [
-                `nexplay_uid=${uid}; Path=/; SameSite=Lax; Max-Age=86400`,
-                `nexplay_role=${role}; Path=/; SameSite=Lax; Max-Age=86400`
-            ]);
-        } else if (req.session && req.session.userId === null) {
-            res.setHeader('Set-Cookie', [
-                `nexplay_uid=; Path=/; SameSite=Lax; Max-Age=0`,
-                `nexplay_role=; Path=/; SameSite=Lax; Max-Age=0`
-            ]);
-        }
-        return origJson.call(this, data);
-    };
-
+    
     next();
 });
 
