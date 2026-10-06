@@ -370,6 +370,8 @@ router.get('/revenue/detailed', isAdmin, (req, res) => {
             dateFilter = " AND date(o.created_at) = date('now', 'localtime')";
         } else if (range === 'week') {
             dateFilter = " AND date(o.created_at) >= date('now', '-7 days', 'localtime')";
+        } else if (range === '30days') {
+            dateFilter = " AND date(o.created_at) >= date('now', '-30 days', 'localtime')";
         } else if (range === 'month') {
             dateFilter = " AND strftime('%Y-%m', o.created_at) = strftime('%Y-%m', 'now', 'localtime')";
         }

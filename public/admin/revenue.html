@@ -88,7 +88,8 @@
                 <!-- Quick Filter Buttons -->
                 <div class="no-print glass-card" style="padding:14px 20px;margin-bottom:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
                     <span style="font-weight:600;font-size:0.9rem;color:var(--text-secondary)">Filter Cepat:</span>
-                    <button class="btn btn-secondary btn-sm filter-btn active" data-range="all" onclick="setQuickFilter('all', this)">Semua Waktu</button>
+                    <button class="btn btn-secondary btn-sm filter-btn" data-range="all" onclick="setQuickFilter('all', this)">Semua Waktu</button>
+                    <button class="btn btn-secondary btn-sm filter-btn active" data-range="30days" onclick="setQuickFilter('30days', this)">30 Hari Terakhir</button>
                     <button class="btn btn-secondary btn-sm filter-btn" data-range="today" onclick="setQuickFilter('today', this)">Hari Ini</button>
                     <button class="btn btn-secondary btn-sm filter-btn" data-range="week" onclick="setQuickFilter('week', this)">7 Hari Terakhir</button>
                     <button class="btn btn-secondary btn-sm filter-btn" data-range="month" onclick="setQuickFilter('month', this)">Bulan Ini</button>
@@ -164,7 +165,7 @@
 
     <script src="/js/app.js"></script>
     <script>
-        let currentRange = 'all';
+        let currentRange = '30days';
         let customDateFrom = '';
         let customDateTo = '';
 
@@ -201,11 +202,11 @@
         function clearDateFilter() {
             customDateFrom = '';
             customDateTo = '';
-            currentRange = 'all';
+            currentRange = '30days';
             document.getElementById('date-from').value = '';
             document.getElementById('date-to').value = '';
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            document.querySelector('.filter-btn[data-range="all"]').classList.add('active');
+            document.querySelector('.filter-btn[data-range="30days"]').classList.add('active');
             loadRevenueData();
         }
 
@@ -247,7 +248,7 @@
                     filterCount.textContent = `(${(data.transactions || []).length} transaksi)`;
                 } else if (currentRange !== 'all') {
                     filterInfo.style.display = 'block';
-                    const rangeLabels = { today: 'Hari Ini', week: '7 Hari Terakhir', month: 'Bulan Ini' };
+                    const rangeLabels = { today: 'Hari Ini', week: '7 Hari Terakhir', '30days': '30 Hari Terakhir', month: 'Bulan Ini' };
                     filterLabel.textContent = rangeLabels[currentRange] || currentRange;
                     filterCount.textContent = `(${(data.transactions || []).length} transaksi)`;
                 } else {
